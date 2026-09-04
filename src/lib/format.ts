@@ -17,6 +17,19 @@ export function formatSignedRupiahCompact(amount: number): string {
   return `${sign}Rp ${formatRupiahAmount(amount)}`;
 }
 
+/** Abbreviated amount for tight spaces, e.g. "Rp 924 rb", "Rp 2,4 jt" — matches the Laporan donut legend style. */
+export function formatCompactRupiah(amount: number): string {
+  const abs = Math.abs(amount);
+  if (abs >= 1_000_000) {
+    const millions = Math.round((abs / 1_000_000) * 10) / 10;
+    return `Rp ${millions.toString().replace(".", ",")} jt`;
+  }
+  if (abs >= 1_000) {
+    return `Rp ${Math.round(abs / 1_000)} rb`;
+  }
+  return `Rp ${abs}`;
+}
+
 /** Full Indonesian date, e.g. "Senin, 20 Juli 2026". */
 export function formatFullDateId(date: Date): string {
   return new Intl.DateTimeFormat("id-ID", {
