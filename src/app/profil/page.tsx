@@ -8,12 +8,19 @@ import { useFinance } from "@/lib/finance-context";
 import { currentUser } from "@/lib/mock-data";
 
 export default function ProfilPage() {
-  const { wallets } = useFinance();
+  const { wallets, resetToDefault } = useFinance();
   const [isReminderOn, setIsReminderOn] = useState(true);
 
   const initials = getInitials(currentUser.fullName);
   const healthLabel = getHealthScoreLabel(currentUser.healthScore);
   const memberSinceLabel = formatMonthYearId(new Date(currentUser.memberSince));
+
+  function handleResetToDefault() {
+    const confirmed = window.confirm(
+      "Reset semua saldo dompet & riwayat transaksi ke data awal (dummy)? Perubahan yang sudah Anda catat akan hilang dan tidak bisa dikembalikan."
+    );
+    if (confirmed) resetToDefault();
+  }
 
   return (
     <>
@@ -253,6 +260,14 @@ export default function ProfilPage() {
             >
               <span className="material-symbols-outlined text-[20px]">logout</span>
               <span>Keluar dari Akun</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleResetToDefault}
+              className="w-full bg-surface-container-low text-on-surface-variant hover:bg-surface-container font-label-lg text-label-lg py-3.5 px-space-md rounded-xl flex items-center justify-center gap-space-xs transition-all active:scale-[0.99]"
+            >
+              <span className="material-symbols-outlined text-[20px]">restart_alt</span>
+              <span>Reset ke Data Awal</span>
             </button>
             <p className="text-center font-label-caps text-label-caps text-on-surface-variant tracking-wider">
               Versi Aplikasi 2.4.1 • Dompetku Studio
