@@ -105,13 +105,32 @@ function CatatTransaksiForm() {
   }
 
   function handleSave() {
-    if (rawAmount <= 0) {
+    if (!Number.isFinite(rawAmount) || rawAmount <= 0) {
       setAmountError("Nominal transaksi belum diisi");
       return;
     }
     if (!walletId) {
       setAmountError("Pilih dompet sumber terlebih dahulu");
       return;
+    }
+
+    if (direction === "expense") {
+      const selectedWallet = wallets.find((w) => w.id === walletId);
+      // When editing an existing expense on the same wallet, its old amount
+      // will be reversed back into the balance before the new amount is
+      // applied — so it counts toward what's "available" for this edit.
+      const restoredAmount =
+        editingTransaction && editingTransaction.walletId === walletId && editingTransaction.direction === "expense"
+          ? editingTransaction.amount
+          : 0;
+      const availableBalance = (selectedWallet?.balance ?? 0) + restoredAmount;
+
+      if (rawAmount > availableBalance) {
+        setAmountError(
+          `Saldo ${selectedWallet?.name ?? "dompet ini"} tidak cukup — tersedia Rp ${formatRupiahAmount(availableBalance)}`
+        );
+        return;
+      }
     }
 
     setStatus("saving");

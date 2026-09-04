@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { TransactionRow } from "@/components/TransactionRow";
+import { getCategoryById } from "@/lib/categories";
 import { useFinance } from "@/lib/finance-context";
-import { getMonthlySummary, groupTransactionsByDay, isSameMonth } from "@/lib/finance";
+import { getMonthlySummary, getWalletDisplayLabel, groupTransactionsByDay, isSameMonth } from "@/lib/finance";
 import { formatDayGroupLabel, formatSignedRupiahCompact } from "@/lib/format";
 import { REFERENCE_DATE } from "@/lib/mock-data";
 import type { TransactionDirection } from "@/lib/types";
@@ -23,15 +25,33 @@ const DIRECTION_BY_FILTER: Partial<Record<FilterType, TransactionDirection>> = {
   masuk: "income",
 };
 
+/** `useSearchParams()` (for the `?category=` deep link from Kelola Kategori) requires a Suspense boundary in the App Router. */
 export default function RiwayatTransaksiPage() {
-  const { transactions } = useFinance();
+  return (
+    <Suspense fallback={null}>
+      <RiwayatTransaksiContent />
+    </Suspense>
+  );
+}
+
+function RiwayatTransaksiContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const categoryId = searchParams.get("category");
+
+  const { transactions, wallets } = useFinance();
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
+  const [walletFilter, setWalletFilter] = useState<string>("all");
+  const [sortAsc, setSortAsc] = useState(false);
 
   const monthlySummary = getMonthlySummary(transactions, REFERENCE_DATE);
   const monthLabel = new Intl.DateTimeFormat("id-ID", { month: "long", year: "numeric" }).format(
     REFERENCE_DATE
   );
+
+  const categoryFilterLabel = categoryId ? getCategoryById(categoryId).fullName : null;
 
   const query = searchQuery.trim().toLowerCase();
   const filteredTransactions = transactions.filter((t) => {
@@ -39,10 +59,18 @@ export default function RiwayatTransaksiPage() {
     const matchesDirection = !requiredDirection || t.direction === requiredDirection;
     const matchesMonth = activeFilter !== "bulan-ini" || isSameMonth(t.timestamp, REFERENCE_DATE);
     const matchesSearch = query === "" || t.title.toLowerCase().includes(query);
-    return matchesDirection && matchesMonth && matchesSearch;
+    const matchesCategory = !categoryId || t.categoryId === categoryId;
+    const matchesWallet = walletFilter === "all" || t.walletId === walletFilter;
+    return matchesDirection && matchesMonth && matchesSearch && matchesCategory && matchesWallet;
   });
 
-  const dayGroups = groupTransactionsByDay(filteredTransactions);
+  const groupedByDay = groupTransactionsByDay(filteredTransactions);
+  const dayGroups = sortAsc ? [...groupedByDay].reverse() : groupedByDay;
+
+  function resetAdvancedFilters() {
+    setWalletFilter("all");
+    setSortAsc(false);
+  }
 
   return (
     <>
@@ -102,6 +130,23 @@ export default function RiwayatTransaksiPage() {
               </div>
             </section>
 
+            {/* Category Deep-Link Banner (from Kelola Kategori) */}
+            {categoryFilterLabel && (
+              <div className="flex items-center justify-between bg-surface-container-low rounded-full pl-space-md pr-space-xs py-1.5">
+                <span className="font-label-md text-label-md text-on-surface-variant truncate">
+                  Kategori: <span className="text-on-surface font-semibold">{categoryFilterLabel}</span>
+                </span>
+                <button
+                  aria-label="Hapus filter kategori"
+                  type="button"
+                  onClick={() => router.push("/transaksi")}
+                  className="w-7 h-7 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container transition-colors shrink-0"
+                >
+                  <span className="material-symbols-outlined text-[16px]">close</span>
+                </button>
+              </div>
+            )}
+
             {/* Search Bar & Filter Controls */}
             <div className="flex items-center gap-space-xs">
               <div className="relative flex-1">
@@ -118,6 +163,7 @@ export default function RiwayatTransaksiPage() {
               </div>
               <button
                 aria-label="Buka Filter Lanjutan"
+                onClick={() => setIsFilterSheetOpen(true)}
                 className="relative w-11 h-11 flex-shrink-0 bg-surface-container-lowest text-on-surface rounded-xl flex items-center justify-center shadow-sm active:scale-95 transition-all hover:bg-surface-container-low"
               >
                 <span className="material-symbols-outlined text-[20px]">tune</span>
@@ -187,6 +233,109 @@ export default function RiwayatTransaksiPage() {
           </div>
         </div>
       </main>
+
+      {/* Advanced Filter Bottom Sheet */}
+      {isFilterSheetOpen && (
+        <div className="fixed inset-0 z-[60] flex items-end justify-center">
+          <button
+            aria-label="Tutup"
+            onClick={() => setIsFilterSheetOpen(false)}
+            className="absolute inset-0 bg-inverse-surface/40 backdrop-blur-sm"
+          />
+          <div className="relative w-full max-w-md bg-surface-container-lowest rounded-t-[28px] p-space-lg pb-safe shadow-2xl space-y-space-md max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center justify-between">
+              <h3 className="font-headline-sm text-headline-sm text-on-surface">Filter Lanjutan</h3>
+              <button
+                aria-label="Tutup"
+                type="button"
+                onClick={() => setIsFilterSheetOpen(false)}
+                className="w-9 h-9 rounded-full bg-surface-container-low flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors"
+              >
+                <span className="material-symbols-outlined text-[18px]">close</span>
+              </button>
+            </div>
+
+            <div className="space-y-space-xs">
+              <span className="font-label-caps text-label-caps text-outline uppercase px-space-xxs">
+                Dompet Sumber
+              </span>
+              <div className="relative">
+                <div className="w-full flex items-center justify-between p-space-sm rounded-lg bg-surface-container-low text-left">
+                  <div className="flex items-center gap-space-xs min-w-0">
+                    <div className="w-9 h-9 rounded-lg bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center shrink-0">
+                      <span className="material-symbols-outlined text-[20px]">account_balance_wallet</span>
+                    </div>
+                    <span className="font-label-lg text-label-lg text-on-surface truncate">
+                      {walletFilter === "all"
+                        ? "Semua Dompet"
+                        : getWalletDisplayLabel(wallets.find((w) => w.id === walletFilter)!)}
+                    </span>
+                  </div>
+                  <span className="material-symbols-outlined text-outline text-[20px]">expand_more</span>
+                </div>
+                <select
+                  aria-label="Pilih dompet sumber"
+                  value={walletFilter}
+                  onChange={(e) => setWalletFilter(e.target.value)}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                >
+                  <option value="all">Semua Dompet</option>
+                  {wallets.map((wallet) => (
+                    <option key={wallet.id} value={wallet.id}>
+                      {getWalletDisplayLabel(wallet)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-space-xs">
+              <span className="font-label-caps text-label-caps text-outline uppercase px-space-xxs">Urutan</span>
+              <div className="p-space-xxs bg-surface-container rounded-full flex items-center shadow-inner">
+                <button
+                  type="button"
+                  onClick={() => setSortAsc(false)}
+                  className={
+                    !sortAsc
+                      ? "flex-1 py-space-xs px-space-md rounded-full bg-primary-container text-on-primary shadow-sm transition-all duration-200 font-label-md text-label-md"
+                      : "flex-1 py-space-xs px-space-md rounded-full text-on-surface-variant hover:text-on-surface transition-all duration-200 font-label-md text-label-md"
+                  }
+                >
+                  Terbaru Dahulu
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSortAsc(true)}
+                  className={
+                    sortAsc
+                      ? "flex-1 py-space-xs px-space-md rounded-full bg-primary-container text-on-primary shadow-sm transition-all duration-200 font-label-md text-label-md"
+                      : "flex-1 py-space-xs px-space-md rounded-full text-on-surface-variant hover:text-on-surface transition-all duration-200 font-label-md text-label-md"
+                  }
+                >
+                  Terlama Dahulu
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsFilterSheetOpen(false)}
+              className="w-full h-[52px] bg-primary-container hover:bg-primary text-on-primary rounded-[16px] flex items-center justify-center gap-space-xs font-label-lg text-label-lg shadow-md transition-all active:scale-[0.99]"
+            >
+              <span className="material-symbols-outlined text-[20px]">check_circle</span>
+              <span>Terapkan Filter</span>
+            </button>
+            <button
+              type="button"
+              onClick={resetAdvancedFilters}
+              className="w-full h-11 rounded-xl bg-surface-container-low hover:bg-surface-container text-on-surface-variant flex items-center justify-center gap-1.5 font-label-lg text-label-lg transition-all active:scale-95"
+            >
+              <span className="material-symbols-outlined text-[18px]">restart_alt</span>
+              <span>Reset Filter</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       <BottomNav />
     </>

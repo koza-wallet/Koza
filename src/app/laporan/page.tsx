@@ -2,10 +2,19 @@
 
 import { useMemo, useState } from "react";
 import { BottomNav } from "@/components/BottomNav";
+import { downloadCsv, transactionsToCsv } from "@/lib/csv-export";
 import { useFinance } from "@/lib/finance-context";
 import { getPeriodReport, shiftAnchor, type ReportGranularity } from "@/lib/report";
 import { formatCompactRupiah, formatRupiahAmount } from "@/lib/format";
 import { REFERENCE_DATE } from "@/lib/mock-data";
+
+/** Lowercase, dash-separated, ASCII-only — safe as a filename fragment. */
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
 
 const GRANULARITY_OPTIONS: { type: ReportGranularity; label: string }[] = [
   { type: "harian", label: "Harian" },
@@ -32,7 +41,7 @@ function formatDelta(changePct: number | null, previousLabel: string): string {
 }
 
 export default function LaporanPage() {
-  const { transactions } = useFinance();
+  const { transactions, wallets } = useFinance();
   const [granularity, setGranularity] = useState<ReportGranularity>("bulanan");
   const [anchorDate, setAnchorDate] = useState<Date>(REFERENCE_DATE);
 
@@ -40,6 +49,16 @@ export default function LaporanPage() {
     () => getPeriodReport(transactions, granularity, anchorDate),
     [transactions, granularity, anchorDate]
   );
+
+  function handleDownload() {
+    const periodTransactions = transactions.filter((t) => {
+      const time = new Date(t.timestamp).getTime();
+      return time >= report.rangeStart.getTime() && time < report.rangeEnd.getTime();
+    });
+    const csv = transactionsToCsv(periodTransactions, wallets);
+    const slug = slugify(`${granularity}-${report.periodLabel}`);
+    downloadCsv(`koza-laporan-${slug}.csv`, csv);
+  }
 
   function handleGranularityChange(next: ReportGranularity) {
     setGranularity(next);
@@ -122,7 +141,10 @@ export default function LaporanPage() {
                 <span className="material-symbols-outlined text-[18px]">chevron_right</span>
               </button>
             </div>
-            <button className="flex items-center space-x-space-xxs bg-surface-container-low px-space-md py-space-xs rounded-full text-on-surface-variant hover:text-primary transition-colors shadow-sm">
+            <button
+              onClick={handleDownload}
+              className="flex items-center space-x-space-xxs bg-surface-container-low px-space-md py-space-xs rounded-full text-on-surface-variant hover:text-primary transition-colors shadow-sm"
+            >
               <span className="material-symbols-outlined text-[18px]">file_download</span>
               <span className="font-label-md text-label-md">Unduh</span>
             </button>

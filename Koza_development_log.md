@@ -114,14 +114,67 @@ Konsisten dengan disiplin skop dari audit: ekspor CSV/PDF ("Unduh"/"Ekspor Lapor
 
 **Kondisi saat commit ini:** semua pekerjaan §9 (CRUD transaksi & dompet, penyesuaian kategori, 2 layar baru, bugfix teknis) sudah selesai, terverifikasi (`tsc`/`eslint`/`build` bersih, diuji manual di Chrome dengan pengecekan matematis saldo), dan di-commit ke branch `main`. Working tree bersih setelah commit ini. **Repo belum punya git remote** (`git remote -v` kosong) — tidak bisa di-push sampai remote dikonfigurasi.
 
-**Checklist lanjutan (dari §9.5, belum dikerjakan, urutan bebas sesuai prioritas):**
-- [ ] Ekspor CSV/PDF — isi tombol "Unduh" (Laporan) & "Ekspor Laporan" (Profil), keduanya masih dekoratif
-- [ ] Layar Kategori Transaksi custom — aset Stitch `kategori_light.html`/`kategori_dark.html` ada di scratchpad lama, belum diporting; link "Kategori Transaksi" di Profil masih `href="#"`
-- [ ] Validasi saldo tidak boleh minus saat transaksi expense melebihi saldo dompet
-- [ ] Filter lanjutan di Riwayat — tombol "Buka Filter Lanjutan" (`tune` icon) masih dekoratif
+**Checklist lanjutan (dari §9.5) — status setelah §11:**
+- [x] Ekspor CSV — isi tombol "Unduh" (Laporan) & "Ekspor Laporan" (Profil). **Catatan: CSV saja, bukan PDF** (lihat §11.2 untuk alasan).
+- [x] Layar Kategori Transaksi custom — diporting dari `kategori_light.html` (lihat §11.1); link "Kategori Transaksi" di Profil sekarang mengarah ke `/kategori`.
+- [x] Validasi saldo tidak boleh minus saat transaksi expense melebihi saldo dompet — lihat §11.3.
+- [x] Filter lanjutan di Riwayat — tombol "Buka Filter Lanjutan" (`tune` icon) sekarang membuka bottom sheet filter dompet + urutan — lihat §11.4.
 - [ ] Unit test otomatis untuk fungsi murni (`finance.ts`, `report.ts`, `format.ts`) — belum ada test runner di project sama sekali
 - [ ] PWA readiness — manifest.json, service worker, ikon app kustom (masih pakai SVG default create-next-app di `/public`)
 - [ ] Backend + autentikasi nyata (di luar localStorage satu-browser)
 - [ ] Security headers sebelum deploy publik
 
-**Cara melanjutkan sesi berikutnya:** baca §9 untuk konteks arsitektur CRUD (terutama pola `walletId`/`categoryId` dan kenapa `UPDATE_WALLET` sengaja tidak menerima `balance`), lalu pilih item checklist di atas sesuai prioritas berikutnya.
+**Cara melanjutkan sesi berikutnya:** baca §9 untuk konteks arsitektur CRUD (terutama pola `walletId`/`categoryId` dan kenapa `UPDATE_WALLET` sengaja tidak menerima `balance`), lalu §11 untuk pekerjaan sesi ini, lalu §12 untuk status commit paling akhir dan checklist yang masih tersisa.
+
+## 11. Eksekusi Dead Links, Ekspor CSV, Validasi Saldo, Layar Kategori
+
+Sesi ini mengeksekusi seluruh 4 item checklist §10 di atas (kecuali unit test/PWA/backend/security headers, tetap di luar cakupan), dengan guardrail yang sama seperti sebelumnya: **tidak ada layout/token/tipografi Stitch yang diubah** — hanya fungsionalitas, data, dan (di satu tempat) copy yang tidak akurat lagi (lihat §11.2) yang disentuh.
+
+### 11.1 Layar baru: Kelola Kategori (`/kategori`)
+
+- Aset sumber `kategori_light.html`/`kategori_dark.html` sudah tidak ada di scratchpad sesi manapun yang aktif (scratchpad bersifat sesi-lokal dan terhapus), tapi ditemukan kembali di direktori scratchpad sesi lama yang masih tersisa di filesystem. **Temuan penting:** file `kategori_dark.html` di sana ternyata bukan varian dark dari layar Kategori sama sekali — isinya adalah duplikat/salah label dari export "Detail Transaksi" (ramen_dining, dsb.). Jadi hanya `kategori_light.html` yang benar-benar valid sebagai sumber, dan itu pun sudah memakai token warna standar (bukan hex hardcode) — konsisten dengan pola §5/§6/§9.3 untuk selalu membangun dari token standar theme-aware, bukan mengejar export "_dark" yang literal.
+- Header diadaptasi ke pola "layar pushed" standar aplikasi ini (back+title+avatar, sama seperti Kelola Dompet/Detail Transaksi) karena markup asli Stitch mengasumsikan ini tab bottom-nav tersendiri, yang tidak ada di `BottomNav` KoZa (5 tab tetap tidak diubah).
+- **Semua angka fiktif di markup asli diganti data riil**, mengikuti prinsip §4.1: badge jumlah kategori di tab Duit Keluar/Masuk (Stitch: "12"/"5" statis) → `getCategoriesForDirection(direction).length` riil (aktual 8/5). "Anggaran Rp 2.500.000" per kategori (butuh sistem budget yang belum dibangun, sama alasannya dengan §5) → diganti "{N} transaksi bulan ini • Rp {total}" riil dari fungsi baru `getCategoryMonthlyStats()` (`finance.ts`). Badge "Rutin" (tak ada model data pendukung) dihapus; badge "Primer" dipertahankan tapi hanya muncul untuk kategori yang benar-benar `DEFAULT_EXPENSE_CATEGORY_ID`/`DEFAULT_INCOME_CATEGORY_ID` — fakta nyata (kategori pre-selected di form Catat Transaksi), bukan klaim kosong. Kartu "Pemanfaatan Kategori" di bawah dihitung dari kategori dengan nominal terbesar bulan ini per arah aktif, bukan teks statis "Makan & Minum 48%".
+- Pencarian (`Cari nama kategori...`) dan tab segmented Duit Keluar/Masuk yang di export Stitch aslinya cuma vanilla-JS dekoratif, sekarang benar-benar memfilter `getCategoriesForDirection()` secara real-time. Tombol "Urutan" (`swap_vert`, dekoratif di Stitch) sekarang toggle urutan abjad asc/desc riil. Ikon search di header memfokuskan input pencarian di body (bukan aksi terpisah yang dekoratif).
+- Setiap kartu kategori (termasuk ikon pensil "edit") navigasi ke `/transaksi?category={id}` — membuka Riwayat yang sudah difilter ke kategori itu (lihat §11.4). Ini interpretasi yang disengaja: aplikasi ini tidak punya model kategori yang bisa diedit pengguna (kategori adalah katalog tetap di `categories.ts`, dipakai lintas layar/warna — mengubahnya jadi editable adalah perubahan skema besar yang tidak diminta sesi ini), jadi "edit" di sini diarahkan ke aksi yang benar-benar didukung: meninjau transaksi kategori tersebut.
+- Tombol "+ Tambah Kategori Baru" — karena alasan yang sama (tidak ada model kategori kustom), tidak dibuat pura-pura berfungsi. Diberi toast honest "Kategori kustom akan hadir di rilis mendatang" (pola toast yang sama persis dengan yang sudah ada di Detail Transaksi), bukan dead click yang benar-benar tanpa respons apa pun.
+
+### 11.2 Ekspor CSV (bukan PDF)
+
+- `src/lib/csv-export.ts` baru: `transactionsToCsv()` menghasilkan CSV dengan kolom Tanggal, Waktu, Judul, Kategori, Arah, Nominal (Rp, angka polos tanpa pemisah ribuan — lebih ramah untuk dibaca ulang sebagai angka oleh Excel/Sheets), Dompet, Metode Pembayaran, Catatan — dengan escaping CSV yang benar (quote + double-quote utk field yang mengandung koma/kutip/newline). `downloadCsv()` memicu unduhan file nyata lewat `Blob` + elemen `<a download>` sementara (dengan BOM UTF-8 agar karakter "Rp"/nama kategori tampil benar di Excel).
+- **Sengaja hanya CSV, tidak ada PDF** — sesuai saran eksplisit di instruksi sesi ini ("generate file CSV dari transaksi aktif di localStorage") dan prinsip §4 (tidak menambah dependency/abstraksi di luar yang diminta): PDF butuh library render tambahan yang tidak ada alasan kuat untuk diinstal hanya demi satu tombol unduh. Copy "Unduh pembukuan berkala CSV / PDF" di Profil diubah jujur jadi "Unduh pembukuan CSV seluruh riwayat transaksi" — perubahan teks, bukan layout, agar tidak menjanjikan sesuatu yang tidak dibangun (prinsip §5/§6).
+- Tombol "Unduh" di Laporan mengekspor transaksi periode yang sedang dilihat saja (`report.rangeStart`–`report.rangeEnd`, mengikuti granularitas & navigasi periode yang aktif), nama file mengikut periode (mis. `koza-laporan-bulanan-juli-2026.csv`). "Ekspor Laporan" di Profil mengekspor seluruh riwayat transaksi (`koza-riwayat-transaksi.csv`) — elemen `<a href="#">` diubah jadi `<Link href="/kategori">`/`<button onClick>` (tag semantik yang benar untuk navigasi vs. aksi), kelas Tailwind dipertahankan identik.
+
+### 11.3 Validasi saldo — cegah pengeluaran melebihi saldo dompet
+
+- Di `handleSave()` (`transaksi/tambah/page.tsx`), sebelum menyimpan transaksi expense: dihitung `availableBalance` = saldo dompet terpilih saat ini, ditambah kembali nominal transaksi lama **jika** sedang mode edit dan dompet+arahnya sama seperti sebelumnya (karena proses edit akan membalik delta lama sebelum menerapkan delta baru — lihat reducer `UPDATE_TRANSACTION` di §9.1 — jadi nominal lama itu ikut "tersedia" lagi untuk edit ini). Jika nominal baru melebihi `availableBalance`, disimpan dibatalkan dan pesan error ramah muncul di slot error yang sudah ada di UI (`amountError`, sama seperti pesan "Nominal belum diisi"): `"Saldo {nama dompet} tidak cukup — tersedia Rp {angka}"`. Tidak memakai `window.alert()` — memakai slot pesan inline yang sudah konsisten dipakai form ini.
+- Guard nominal diperketat dari `rawAmount <= 0` jadi `!Number.isFinite(rawAmount) || rawAmount <= 0` (defensif terhadap nilai non-finite).
+- Input "Saldo awal" di form Tambah Dompet (`dompet/page.tsx`) — sebelumnya `Number(e.target.value) || 0` bisa menerima negatif (mis. mengetik "-50000" langsung lolos, atribut HTML `min={0}` cuma hint visual, tidak divalidasi lewat JS) dan desimal (mis. "50000.5"). Diperbaiki dengan clamp di `onChange`: `Math.max(0, Math.floor(Number(e.target.value) || 0))` — string kosong/NaN jatuh ke 0, negatif dipotong ke 0, desimal dibulatkan ke bawah.
+
+### 11.4 Riwayat: filter lanjutan + deep-link kategori
+
+- Tombol "Buka Filter Lanjutan" (`tune`, sebelumnya dekoratif) sekarang membuka bottom sheet (pola visual identik dengan sheet tambah/edit dompet di Kelola Dompet — tidak ada bahasa visual baru): filter "Dompet Sumber" (select tersembunyi di atas row, pola sama seperti selector dompet di Catat Transaksi) dan toggle "Urutan" (Terbaru Dahulu / Terlama Dahulu, pola segmented toggle sama seperti toggle arah transaksi). "Terapkan Filter" menutup sheet (state sudah live), "Reset Filter" mengembalikan ke default tanpa menutup sheet.
+- Halaman ini sekarang juga baca query param `?category=<id>` (perlu `Suspense` boundary utk `useSearchParams()`, pola yang sama dengan `transaksi/tambah/page.tsx`) — dipakai kartu kategori di layar `/kategori` (§11.1) untuk deep-link. Saat aktif, muncul pill kecil di atas search bar menampilkan nama kategori + tombol "×" utk membersihkannya (`router.push("/transaksi")`).
+- Pencarian teks & chip filter cepat (Semua/Duit Keluar/Duit Masuk/Bulan Ini) **sebenarnya sudah berfungsi sejak sesi sebelumnya** — bukan bagian dari perbaikan sesi ini, hanya tombol "tune" yang tadinya benar-benar dekoratif.
+
+### 11.5 Sengaja tidak disentuh (di luar cakupan eksplisit sesi ini)
+
+Tombol/link dekoratif yang TIDAK disebut eksplisit di instruksi sesi ini dibiarkan seperti semula, konsisten dengan preseden §6 ("elemen dekoratif tanpa model data dibiarkan statis"): tombol Top Up/Transfer/Kantong & "Analisis" di Beranda, seluruh ikon lonceng notifikasi di setiap header, gear "Pengaturan Lanjutan" & "Keamanan & PIN"/"Bantuan & Dukungan"/"Keluar dari Akun" di Profil. Semua ini butuh fitur backend/model data yang belum ada dan tidak diminta sesi ini — bukan terlewat, melainkan keputusan skop yang sama seperti sesi-sesi sebelumnya.
+
+### 11.6 Verifikasi
+
+`npx tsc --noEmit` bersih, `npx eslint .` 0 error (4 warning font yang sama, didokumentasikan sejak §2), `npm run build` sukses 100% (9 route termasuk `/kategori` baru).
+
+## 12. Status & Checklist Lanjutan (checkpoint darurat — usage limit sesi, kelanjutan dari §10)
+
+**Kondisi saat commit ini:** seluruh pekerjaan §11 (layar Kategori, ekspor CSV Laporan+Profil, validasi saldo, filter lanjutan Riwayat + deep-link kategori) sudah selesai dan terverifikasi bersih (`tsc`/`eslint`/`build`, lihat §11.6). Verifikasi manual di browser untuk sesi ini **belum sempat dilakukan** (checkpoint dipicu darurat oleh usage limit 95%) — prioritas pertama sesi berikutnya adalah uji manual di Chrome: buka `/kategori`, coba `/transaksi?category=makan`, klik "Unduh" di `/laporan`, klik "Ekspor Laporan" di `/profil` (pastikan file CSV benar-benar terunduh & bisa dibuka), dan coba catat transaksi pengeluaran melebihi saldo dompet di `/transaksi/tambah` untuk konfirmasi pesan error muncul dengan benar. Working tree bersih setelah commit ini. Repo masih belum punya git remote — tidak bisa di-push sampai remote dikonfigurasi.
+
+**Checklist lanjutan (belum dikerjakan, urutan bebas sesuai prioritas):**
+- [ ] Verifikasi manual browser untuk seluruh perubahan §11 (lihat paragraf di atas)
+- [ ] Unit test otomatis untuk fungsi murni (`finance.ts`, `report.ts`, `format.ts`) — belum ada test runner di project sama sekali
+- [ ] PWA readiness — manifest.json, service worker, ikon app kustom (masih pakai SVG default create-next-app di `/public`)
+- [ ] Backend + autentikasi nyata (di luar localStorage satu-browser)
+- [ ] Security headers sebelum deploy publik
+- [ ] (Opsional, tidak diminta eksplisit) Pertimbangkan apakah tombol dekoratif di §11.5 perlu difungsikan di masa depan, atau tetap dekoratif selamanya sebagai keputusan produk sadar
+
+**Cara melanjutkan sesi berikutnya:** baca §11 untuk konteks lengkap pekerjaan sesi ini (terutama §11.1 soal kenapa `kategori_dark.html` diabaikan, dan §11.3 soal logika `availableBalance` saat edit), lakukan verifikasi manual di atas, lalu lanjut ke item checklist berikutnya sesuai prioritas.

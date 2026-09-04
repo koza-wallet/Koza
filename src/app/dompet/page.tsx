@@ -421,7 +421,7 @@ export default function KelolaDompetPage() {
                     type="number"
                     min={0}
                     value={formBalance || ""}
-                    onChange={(e) => setFormBalance(Number(e.target.value) || 0)}
+                    onChange={(e) => setFormBalance(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
                   />
                 </div>
               ) : (

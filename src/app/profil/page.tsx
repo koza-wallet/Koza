@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { useState } from "react";
 import { BottomNav } from "@/components/BottomNav";
+import { downloadCsv, transactionsToCsv } from "@/lib/csv-export";
 import { getHealthScoreLabel } from "@/lib/finance";
 import { formatMonthYearId, getInitials } from "@/lib/format";
 import { useFinance } from "@/lib/finance-context";
 import { currentUser } from "@/lib/mock-data";
 
 export default function ProfilPage() {
-  const { wallets, resetToDefault } = useFinance();
+  const { wallets, transactions, resetToDefault } = useFinance();
   const [isReminderOn, setIsReminderOn] = useState(true);
 
   const initials = getInitials(currentUser.fullName);
@@ -21,6 +22,11 @@ export default function ProfilPage() {
       "Reset semua saldo dompet & riwayat transaksi ke data awal (dummy)? Perubahan yang sudah Anda catat akan hilang dan tidak bisa dikembalikan."
     );
     if (confirmed) resetToDefault();
+  }
+
+  function handleExport() {
+    const csv = transactionsToCsv(transactions, wallets);
+    downloadCsv("koza-riwayat-transaksi.csv", csv);
   }
 
   return (
@@ -141,7 +147,7 @@ export default function ProfilPage() {
                 </span>
               </Link>
               <div className="h-[1px] bg-surface-container mx-space-md" />
-              <a className="flex items-center justify-between p-space-md hover:bg-surface-container-low transition-colors group" href="#">
+              <Link className="flex items-center justify-between p-space-md hover:bg-surface-container-low transition-colors group" href="/kategori">
                 <div className="flex items-center gap-space-md min-w-0">
                   <div className="w-10 h-10 rounded-lg bg-secondary-fixed text-on-secondary-fixed-variant flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
                     <span className="material-symbols-outlined text-[20px]">sell</span>
@@ -156,9 +162,13 @@ export default function ProfilPage() {
                 <span className="material-symbols-outlined text-on-surface-variant text-[20px] ml-space-xs">
                   chevron_right
                 </span>
-              </a>
+              </Link>
               <div className="h-[1px] bg-surface-container mx-space-md" />
-              <a className="flex items-center justify-between p-space-md hover:bg-surface-container-low transition-colors group" href="#">
+              <button
+                type="button"
+                onClick={handleExport}
+                className="w-full text-left flex items-center justify-between p-space-md hover:bg-surface-container-low transition-colors group"
+              >
                 <div className="flex items-center gap-space-md min-w-0">
                   <div className="w-10 h-10 rounded-lg bg-surface-container text-on-surface flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
                     <span className="material-symbols-outlined text-[20px]">file_download</span>
@@ -171,14 +181,14 @@ export default function ProfilPage() {
                       </span>
                     </div>
                     <p className="font-body-sm text-body-sm text-on-surface-variant truncate">
-                      Unduh pembukuan berkala CSV / PDF
+                      Unduh pembukuan CSV seluruh riwayat transaksi
                     </p>
                   </div>
                 </div>
                 <span className="material-symbols-outlined text-on-surface-variant text-[20px] ml-space-xs">
                   chevron_right
                 </span>
-              </a>
+              </button>
             </div>
           </section>
 

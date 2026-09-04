@@ -1,4 +1,4 @@
-import type { Transaction, Wallet } from "./types";
+import type { Transaction, TransactionDirection, Wallet } from "./types";
 
 export function getTotalBalance(walletList: Wallet[]): number {
   return walletList.reduce((sum, wallet) => sum + wallet.balance, 0);
@@ -72,6 +72,32 @@ export function getWalletMonthlyNet(
   );
   const net = monthly.reduce((sum, t) => sum + (t.direction === "income" ? t.amount : -t.amount), 0);
   return { count: monthly.length, net };
+}
+
+export interface CategoryMonthlyStat {
+  categoryId: string;
+  count: number;
+  amount: number;
+}
+
+/** Per-category transaction count + total for one direction in the calendar month of `referenceDate` — drives the Kelola Kategori screen's real (non-fabricated) per-category stats. */
+export function getCategoryMonthlyStats(
+  transactionList: Transaction[],
+  direction: TransactionDirection,
+  referenceDate: Date
+): CategoryMonthlyStat[] {
+  const byCategory = new Map<string, CategoryMonthlyStat>();
+  for (const t of transactionList) {
+    if (t.direction !== direction || !isSameMonth(t.timestamp, referenceDate)) continue;
+    const entry = byCategory.get(t.categoryId);
+    if (entry) {
+      entry.count += 1;
+      entry.amount += t.amount;
+    } else {
+      byCategory.set(t.categoryId, { categoryId: t.categoryId, count: 1, amount: t.amount });
+    }
+  }
+  return Array.from(byCategory.values());
 }
 
 /** Display label for a wallet, e.g. "Dompet Utama (BCA)" for a bank wallet, "GoPay" for an e-wallet. */
