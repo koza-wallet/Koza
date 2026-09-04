@@ -9,10 +9,12 @@ export const REFERENCE_DATE = new Date("2026-07-20T15:00:00+07:00");
 
 export const currentUser: UserProfile = {
   name: "Budi",
+  fullName: "Budi Santoso",
   email: "budi.santoso@email.com",
   avatarUrl:
     "https://lh3.googleusercontent.com/aida-public/AB6AXuA-asVNSbFx5V-PFIazM4v0fXEB0UBdWsStJDm-nhAUGfQogUfvkBDDIX2Kwt-Z28HQeQql-rGaRzcHXGiv_VroVJEHH8W9NqlKoV6n5vCKMjNmNQCb9YjYDzHP7UYwfy0Tz6kimmkpTrZjBSlwvYrT1D9TG-87dSzFI7rLzF-O0doBM8oTOaB0kIAT4hkDA0xpmiWKUqV4eCPIBZlBhcvMEpz3X6Rxvo527SWKzlmQZTQI6_SazZgM",
   healthScore: 88,
+  memberSince: "2026-01-01",
 };
 
 export const wallets: Wallet[] = [

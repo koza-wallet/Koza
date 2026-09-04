@@ -49,6 +49,13 @@ export function getRecentTransactions(transactionList: Transaction[], limit: num
     .slice(0, limit);
 }
 
+/** Category label derived from a 0-100 health score, e.g. 88 -> "Sehat" — matches the Profil card's "Sehat (88/100)". */
+export function getHealthScoreLabel(score: number): string {
+  if (score >= 80) return "Sehat";
+  if (score >= 60) return "Cukup Sehat";
+  return "Perlu Perhatian";
+}
+
 /** Display label for a wallet, e.g. "Dompet Utama (BCA)" for a bank wallet, "GoPay" for an e-wallet. */
 export function getWalletDisplayLabel(wallet: Wallet): string {
   return wallet.type === "bank" && wallet.provider ? `${wallet.name} (${wallet.provider})` : wallet.name;

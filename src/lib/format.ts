@@ -117,6 +117,21 @@ export function formatDayGroupLabel(date: Date, referenceDate: Date): string {
   return `${weekday} • ${dayMonthYear}`;
 }
 
+/** Two-letter initials from a full name, e.g. "Budi Santoso" -> "BS". */
+export function getInitials(fullName: string): string {
+  return fullName
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
+/** Short month + year, e.g. "Jan 2026" — matches the Profil card's "Sejak Jan 2026". */
+export function formatMonthYearId(date: Date): string {
+  return new Intl.DateTimeFormat("id-ID", { month: "short", year: "numeric" }).format(date);
+}
+
 /** yyyy-MM-dd, the value format native `<input type="date">` expects/emits. */
 export function toDateInputValue(date: Date): string {
   const year = date.getFullYear();

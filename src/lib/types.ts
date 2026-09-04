@@ -25,7 +25,10 @@ export interface Wallet {
 
 export interface UserProfile {
   name: string;
+  fullName: string;
   email: string;
   avatarUrl: string;
   healthScore: number;
+  /** ISO 8601 date the user joined, e.g. "2026-01-01" */
+  memberSince: string;
 }
