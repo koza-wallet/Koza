@@ -1,3 +1,5 @@
+import type { TransactionDirection } from "./types";
+
 export interface CategoryOption {
   id: string;
   /** Short label, matches the picker chip text in the Stitch "Catat Transaksi" export. */
@@ -9,12 +11,18 @@ export interface CategoryOption {
   text: string;
   /** Only "Makan" carries this in the Stitch export's static markup; the picker script never toggles it on selection, so it's an always-on property of that one category, not a selected-state style. */
   iconShadow?: boolean;
+  /** Which transaction direction(s) this category is offered for in the Catat Transaksi picker. */
+  appliesTo: TransactionDirection[];
 }
 
 /**
- * The 8 categories, icons, and chip colors ported verbatim from the Stitch
- * "Catat Transaksi" screen's category grid. Shared by the picker and by any
- * screen that needs to resolve a category id to its display data.
+ * The 8 expense categories, icons, and chip colors ported verbatim from the
+ * Stitch "Catat Transaksi" screen's category grid, plus 3 income categories
+ * added so "Duit Masuk" transactions have their own accurate categorization
+ * instead of reusing expense-themed ones — styled with the same token
+ * combinations Stitch already uses elsewhere in this catalog (no new colors
+ * invented). Shared by the picker and by any screen that needs to resolve a
+ * category id to its display data.
  */
 export const CATEGORY_OPTIONS: CategoryOption[] = [
   {
@@ -25,6 +33,7 @@ export const CATEGORY_OPTIONS: CategoryOption[] = [
     bg: "bg-tertiary-fixed",
     text: "text-on-tertiary-fixed",
     iconShadow: true,
+    appliesTo: ["expense"],
   },
   {
     id: "belanja",
@@ -33,6 +42,7 @@ export const CATEGORY_OPTIONS: CategoryOption[] = [
     icon: "shopping_bag",
     bg: "bg-secondary-fixed",
     text: "text-on-secondary-fixed",
+    appliesTo: ["expense"],
   },
   {
     id: "transport",
@@ -41,6 +51,7 @@ export const CATEGORY_OPTIONS: CategoryOption[] = [
     icon: "directions_car",
     bg: "bg-surface-variant",
     text: "text-on-surface-variant",
+    appliesTo: ["expense"],
   },
   {
     id: "tagihan",
@@ -49,6 +60,7 @@ export const CATEGORY_OPTIONS: CategoryOption[] = [
     icon: "receipt_long",
     bg: "bg-error-container",
     text: "text-on-error-container",
+    appliesTo: ["expense"],
   },
   {
     id: "hiburan",
@@ -57,6 +69,7 @@ export const CATEGORY_OPTIONS: CategoryOption[] = [
     icon: "sports_esports",
     bg: "bg-secondary-fixed-dim",
     text: "text-on-secondary-fixed-variant",
+    appliesTo: ["expense"],
   },
   {
     id: "kesehatan",
@@ -65,6 +78,34 @@ export const CATEGORY_OPTIONS: CategoryOption[] = [
     icon: "favorite",
     bg: "bg-tertiary-fixed-dim",
     text: "text-on-tertiary-fixed-variant",
+    appliesTo: ["expense"],
+  },
+  {
+    id: "gaji",
+    name: "Gaji",
+    fullName: "Pemasukan Pokok",
+    icon: "payments",
+    bg: "bg-primary-fixed",
+    text: "text-on-primary-fixed",
+    appliesTo: ["income"],
+  },
+  {
+    id: "bonus",
+    name: "Bonus",
+    fullName: "Bonus & Hadiah",
+    icon: "redeem",
+    bg: "bg-secondary-fixed",
+    text: "text-on-secondary-fixed",
+    appliesTo: ["income"],
+  },
+  {
+    id: "investasi",
+    name: "Investasi",
+    fullName: "Investasi & Dividen",
+    icon: "trending_up",
+    bg: "bg-tertiary-fixed-dim",
+    text: "text-on-tertiary-fixed-variant",
+    appliesTo: ["income"],
   },
   {
     id: "usaha",
@@ -73,6 +114,7 @@ export const CATEGORY_OPTIONS: CategoryOption[] = [
     icon: "work",
     bg: "bg-primary-fixed",
     text: "text-on-primary-fixed",
+    appliesTo: ["income", "expense"],
   },
   {
     id: "lainnya",
@@ -81,10 +123,16 @@ export const CATEGORY_OPTIONS: CategoryOption[] = [
     icon: "more_horiz",
     bg: "bg-surface-dim",
     text: "text-on-surface-variant",
+    appliesTo: ["income", "expense"],
   },
 ];
 
-export const DEFAULT_CATEGORY_ID = "makan";
+export const DEFAULT_EXPENSE_CATEGORY_ID = "makan";
+export const DEFAULT_INCOME_CATEGORY_ID = "gaji";
+
+export function getCategoriesForDirection(direction: TransactionDirection): CategoryOption[] {
+  return CATEGORY_OPTIONS.filter((c) => c.appliesTo.includes(direction));
+}
 
 export function getCategoryById(id: string): CategoryOption {
   return CATEGORY_OPTIONS.find((c) => c.id === id) ?? CATEGORY_OPTIONS[0];

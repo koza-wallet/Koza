@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { getHealthScoreLabel } from "@/lib/finance";
@@ -123,7 +124,7 @@ export default function ProfilPage() {
               <span className="font-label-md text-label-md text-primary">Atur</span>
             </div>
             <div className="bg-surface-container-lowest rounded-xl overflow-hidden shadow-[0_4px_20px_-2px_rgba(15,23,42,0.04)]">
-              <a className="flex items-center justify-between p-space-md hover:bg-surface-container-low transition-colors group" href="#">
+              <Link className="flex items-center justify-between p-space-md hover:bg-surface-container-low transition-colors group" href="/dompet">
                 <div className="flex items-center gap-space-md min-w-0">
                   <div className="w-10 h-10 rounded-lg bg-surface-container-low text-primary flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
                     <span className="material-symbols-outlined text-[20px]">account_balance</span>
@@ -138,7 +139,7 @@ export default function ProfilPage() {
                 <span className="material-symbols-outlined text-on-surface-variant text-[20px] ml-space-xs">
                   chevron_right
                 </span>
-              </a>
+              </Link>
               <div className="h-[1px] bg-surface-container mx-space-md" />
               <a className="flex items-center justify-between p-space-md hover:bg-surface-container-low transition-colors group" href="#">
                 <div className="flex items-center gap-space-md min-w-0">

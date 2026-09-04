@@ -56,6 +56,24 @@ export function getHealthScoreLabel(score: number): string {
   return "Perlu Perhatian";
 }
 
+export interface WalletMonthlyNet {
+  count: number;
+  net: number;
+}
+
+/** Transaction count + net (income - expense) for one wallet in the calendar month of `referenceDate` — drives the Kelola Dompet per-wallet stat footer. */
+export function getWalletMonthlyNet(
+  transactionList: Transaction[],
+  walletId: string,
+  referenceDate: Date
+): WalletMonthlyNet {
+  const monthly = transactionList.filter(
+    (t) => t.walletId === walletId && isSameMonth(t.timestamp, referenceDate)
+  );
+  const net = monthly.reduce((sum, t) => sum + (t.direction === "income" ? t.amount : -t.amount), 0);
+  return { count: monthly.length, net };
+}
+
 /** Display label for a wallet, e.g. "Dompet Utama (BCA)" for a bank wallet, "GoPay" for an e-wallet. */
 export function getWalletDisplayLabel(wallet: Wallet): string {
   return wallet.type === "bank" && wallet.provider ? `${wallet.name} (${wallet.provider})` : wallet.name;

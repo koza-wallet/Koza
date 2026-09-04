@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { getCategoryByIcon } from "@/lib/categories";
 import { formatTimeId } from "@/lib/format";
@@ -30,6 +31,7 @@ interface TransactionRowProps {
 
 /** Transaction row, markup + classes ported verbatim from the Stitch "Riwayat Transaksi" export. */
 export function TransactionRow({ transaction }: TransactionRowProps) {
+  const router = useRouter();
   const [pressed, setPressed] = useState(false);
   const iconTheme = getIconTheme(transaction);
   const amountColor = transaction.direction === "income" ? "text-primary" : "text-tertiary";
@@ -39,6 +41,7 @@ export function TransactionRow({ transaction }: TransactionRowProps) {
   function handleClick() {
     setPressed(true);
     window.setTimeout(() => setPressed(false), 180);
+    router.push(`/transaksi/${transaction.id}`);
   }
 
   return (

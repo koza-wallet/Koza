@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { TransactionRow } from "@/components/TransactionRow";
 import { useFinance } from "@/lib/finance-context";
@@ -33,18 +33,16 @@ export default function RiwayatTransaksiPage() {
     REFERENCE_DATE
   );
 
-  const filteredTransactions = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    return transactions.filter((t) => {
-      const requiredDirection = DIRECTION_BY_FILTER[activeFilter];
-      const matchesDirection = !requiredDirection || t.direction === requiredDirection;
-      const matchesMonth = activeFilter !== "bulan-ini" || isSameMonth(t.timestamp, REFERENCE_DATE);
-      const matchesSearch = query === "" || t.title.toLowerCase().includes(query);
-      return matchesDirection && matchesMonth && matchesSearch;
-    });
-  }, [transactions, activeFilter, searchQuery]);
+  const query = searchQuery.trim().toLowerCase();
+  const filteredTransactions = transactions.filter((t) => {
+    const requiredDirection = DIRECTION_BY_FILTER[activeFilter];
+    const matchesDirection = !requiredDirection || t.direction === requiredDirection;
+    const matchesMonth = activeFilter !== "bulan-ini" || isSameMonth(t.timestamp, REFERENCE_DATE);
+    const matchesSearch = query === "" || t.title.toLowerCase().includes(query);
+    return matchesDirection && matchesMonth && matchesSearch;
+  });
 
-  const dayGroups = useMemo(() => groupTransactionsByDay(filteredTransactions), [filteredTransactions]);
+  const dayGroups = groupTransactionsByDay(filteredTransactions);
 
   return (
     <>

@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { TransactionListItem } from "@/components/TransactionListItem";
@@ -12,6 +14,7 @@ const HIDDEN_BALANCE_PLACEHOLDER = "••••••••";
 const RECENT_TRANSACTIONS_LIMIT = 3;
 
 export default function BerandaPage() {
+  const router = useRouter();
   const [isBalanceHidden, setIsBalanceHidden] = useState(false);
   const { wallets, transactions } = useFinance();
 
@@ -254,13 +257,13 @@ export default function BerandaPage() {
                     {recentTransactions.length}
                   </span>
                 </div>
-                <a
+                <Link
                   href="/transaksi"
                   className="font-label-lg text-label-lg text-primary hover:underline flex items-center gap-0.5"
                 >
                   Lihat Semua
                   <span className="material-symbols-outlined text-[16px]">chevron_right</span>
-                </a>
+                </Link>
               </div>
               <div className="flex flex-col gap-space-xs">
                 {recentTransactions.map((transaction) => (
@@ -268,6 +271,7 @@ export default function BerandaPage() {
                     key={transaction.id}
                     transaction={transaction}
                     referenceDate={REFERENCE_DATE}
+                    onClick={() => router.push(`/transaksi/${transaction.id}`)}
                   />
                 ))}
               </div>

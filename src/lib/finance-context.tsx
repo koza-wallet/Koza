@@ -10,10 +10,10 @@ import {
   type ReactNode,
 } from "react";
 import { transactions as initialTransactions, wallets as initialWallets } from "./mock-data";
-import type { Transaction, TransactionDirection, Wallet } from "./types";
+import type { Transaction, TransactionDirection, Wallet, WalletType } from "./types";
 
-/** Bump this suffix if `FinanceState`'s shape ever changes in a way old saved data wouldn't match. */
-const STORAGE_KEY = "koza.finance-state.v1";
+/** Bumped to v2: `Transaction` gained `categoryId`/`walletId`/`note` and `Wallet` CRUD landed — old v1 snapshots predate those fields, so they're deliberately not loaded (falls back to the fresh default dataset instead of a partial/stale shape). */
+const STORAGE_KEY = "koza.finance-state.v2";
 
 interface FinanceState {
   wallets: Wallet[];
@@ -27,16 +27,42 @@ const defaultState: FinanceState = {
 
 export interface NewTransactionInput {
   title: string;
+  categoryId: string;
   category: string;
   categoryIcon: string;
   direction: TransactionDirection;
   amount: number;
   walletId: string;
+  note?: string;
   timestamp: string;
+}
+
+export interface UpdateTransactionInput extends NewTransactionInput {
+  id: string;
+}
+
+export interface NewWalletInput {
+  name: string;
+  type: WalletType;
+  provider?: string;
+  accountNumberMasked?: string;
+  balance: number;
+}
+
+export interface UpdateWalletInput {
+  id: string;
+  name: string;
+  provider?: string;
+  accountNumberMasked?: string;
 }
 
 type FinanceAction =
   | { type: "ADD_TRANSACTION"; payload: NewTransactionInput }
+  | { type: "UPDATE_TRANSACTION"; payload: UpdateTransactionInput }
+  | { type: "DELETE_TRANSACTION"; payload: { id: string } }
+  | { type: "ADD_WALLET"; payload: NewWalletInput }
+  | { type: "UPDATE_WALLET"; payload: UpdateWalletInput }
+  | { type: "DELETE_WALLET"; payload: { id: string } }
   | { type: "HYDRATE"; payload: FinanceState }
   | { type: "RESET" };
 
@@ -46,6 +72,16 @@ function paymentMethodForWallet(wallet: Wallet): string {
   return "Tunai";
 }
 
+function signedAmount(direction: TransactionDirection, amount: number): number {
+  return direction === "income" ? amount : -amount;
+}
+
+/** Applies a balance delta to one wallet by id; no-ops when `walletId` is undefined (a legacy transaction with no resolvable source wallet) so we never guess which balance to touch. */
+function applyWalletDelta(wallets: Wallet[], walletId: string | undefined, delta: number): Wallet[] {
+  if (!walletId || delta === 0) return wallets;
+  return wallets.map((w) => (w.id === walletId ? { ...w, balance: w.balance + delta } : w));
+}
+
 function reducer(state: FinanceState, action: FinanceAction): FinanceState {
   switch (action.type) {
     case "ADD_TRANSACTION": {
@@ -53,25 +89,118 @@ function reducer(state: FinanceState, action: FinanceAction): FinanceState {
       if (!wallet) return state;
 
       const { direction, amount } = action.payload;
-      const balanceDelta = direction === "income" ? amount : -amount;
-
       const transaction: Transaction = {
         id: `trx-${Date.now()}`,
         title: action.payload.title,
+        categoryId: action.payload.categoryId,
         category: action.payload.category,
         categoryIcon: action.payload.categoryIcon,
         direction,
         amount,
         paymentMethod: paymentMethodForWallet(wallet),
+        walletId: wallet.id,
+        note: action.payload.note,
         timestamp: action.payload.timestamp,
       };
 
       return {
         transactions: [transaction, ...state.transactions],
+        wallets: applyWalletDelta(state.wallets, wallet.id, signedAmount(direction, amount)),
+      };
+    }
+    case "UPDATE_TRANSACTION": {
+      const existing = state.transactions.find((t) => t.id === action.payload.id);
+      if (!existing) return state;
+      const newWallet = state.wallets.find((w) => w.id === action.payload.walletId);
+      if (!newWallet) return state;
+
+      // Two independent steps — reverse the transaction's old effect (from
+      // whichever wallet it originally belonged to), then apply its new
+      // effect (to whichever wallet it belongs to now) — so an edit that
+      // changes the amount, direction, and/or source wallet all at once
+      // still leaves every wallet's balance exactly reconciled.
+      let wallets = applyWalletDelta(
+        state.wallets,
+        existing.walletId,
+        -signedAmount(existing.direction, existing.amount)
+      );
+      wallets = applyWalletDelta(
+        wallets,
+        newWallet.id,
+        signedAmount(action.payload.direction, action.payload.amount)
+      );
+
+      const updated: Transaction = {
+        ...existing,
+        title: action.payload.title,
+        categoryId: action.payload.categoryId,
+        category: action.payload.category,
+        categoryIcon: action.payload.categoryIcon,
+        direction: action.payload.direction,
+        amount: action.payload.amount,
+        paymentMethod: paymentMethodForWallet(newWallet),
+        walletId: newWallet.id,
+        note: action.payload.note,
+        timestamp: action.payload.timestamp,
+      };
+
+      return {
+        wallets,
+        transactions: state.transactions.map((t) => (t.id === existing.id ? updated : t)),
+      };
+    }
+    case "DELETE_TRANSACTION": {
+      const existing = state.transactions.find((t) => t.id === action.payload.id);
+      if (!existing) return state;
+
+      const wallets = applyWalletDelta(
+        state.wallets,
+        existing.walletId,
+        -signedAmount(existing.direction, existing.amount)
+      );
+
+      return {
+        wallets,
+        transactions: state.transactions.filter((t) => t.id !== existing.id),
+      };
+    }
+    case "ADD_WALLET": {
+      const wallet: Wallet = {
+        id: `wallet-${Date.now()}`,
+        name: action.payload.name,
+        type: action.payload.type,
+        provider: action.payload.provider,
+        accountNumberMasked: action.payload.accountNumberMasked,
+        balance: action.payload.balance,
+      };
+      return { ...state, wallets: [...state.wallets, wallet] };
+    }
+    case "UPDATE_WALLET": {
+      // Deliberately doesn't accept `balance` — a wallet's balance should
+      // only ever move via a transaction (ADD/UPDATE/DELETE_TRANSACTION), so
+      // it always stays reconciled with the transaction log instead of being
+      // silently overwritable from an edit form.
+      return {
+        ...state,
         wallets: state.wallets.map((w) =>
-          w.id === wallet.id ? { ...w, balance: w.balance + balanceDelta } : w
+          w.id === action.payload.id
+            ? {
+                ...w,
+                name: action.payload.name,
+                provider: action.payload.provider,
+                accountNumberMasked: action.payload.accountNumberMasked,
+              }
+            : w
         ),
       };
+    }
+    case "DELETE_WALLET": {
+      // Guard: refuse to delete a wallet that still has transaction history —
+      // that would orphan `walletId` references and silently break future
+      // balance edits/deletes for those transactions.
+      const hasHistory = state.transactions.some((t) => t.walletId === action.payload.id);
+      if (hasHistory) return state;
+      return { ...state, wallets: state.wallets.filter((w) => w.id !== action.payload.id) };
     }
     case "HYDRATE":
       return action.payload;
@@ -93,6 +222,11 @@ interface FinanceContextValue {
   wallets: Wallet[];
   transactions: Transaction[];
   addTransaction: (input: NewTransactionInput) => void;
+  updateTransaction: (input: UpdateTransactionInput) => void;
+  deleteTransaction: (id: string) => void;
+  addWallet: (input: NewWalletInput) => void;
+  updateWallet: (input: UpdateWalletInput) => void;
+  deleteWallet: (id: string) => void;
   /** Wipes any saved data and restores the original dummy dataset — used by the Profil screen's "Reset ke Data Awal". */
   resetToDefault: () => void;
 }
@@ -152,6 +286,11 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       wallets: state.wallets,
       transactions: state.transactions,
       addTransaction: (input) => dispatch({ type: "ADD_TRANSACTION", payload: input }),
+      updateTransaction: (input) => dispatch({ type: "UPDATE_TRANSACTION", payload: input }),
+      deleteTransaction: (id) => dispatch({ type: "DELETE_TRANSACTION", payload: { id } }),
+      addWallet: (input) => dispatch({ type: "ADD_WALLET", payload: input }),
+      updateWallet: (input) => dispatch({ type: "UPDATE_WALLET", payload: input }),
+      deleteWallet: (id) => dispatch({ type: "DELETE_WALLET", payload: { id } }),
       resetToDefault: () => dispatch({ type: "RESET" }),
     }),
     [state]

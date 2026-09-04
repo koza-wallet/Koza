@@ -1,8 +1,13 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { CATEGORY_OPTIONS, DEFAULT_CATEGORY_ID, getCategoryById } from "@/lib/categories";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
+import {
+  DEFAULT_EXPENSE_CATEGORY_ID,
+  DEFAULT_INCOME_CATEGORY_ID,
+  getCategoriesForDirection,
+  getCategoryById,
+} from "@/lib/categories";
 import { useFinance } from "@/lib/finance-context";
 import { getWalletDisplayLabel } from "@/lib/finance";
 import {
@@ -20,20 +25,63 @@ const QUICK_AMOUNTS = [
   { label: "+100rb", value: 100_000 },
 ];
 
+/** `useSearchParams()` (for the `?id=` edit-mode param) requires a Suspense boundary in the App Router — this wrapper adds one without changing anything visual. */
 export default function CatatTransaksiPage() {
+  return (
+    <Suspense fallback={null}>
+      <CatatTransaksiForm />
+    </Suspense>
+  );
+}
+
+function CatatTransaksiForm() {
   const router = useRouter();
-  const { wallets, addTransaction } = useFinance();
+  const searchParams = useSearchParams();
+  const editId = searchParams.get("id");
+  const { wallets, transactions, addTransaction, updateTransaction } = useFinance();
+
+  const editingTransaction = editId ? transactions.find((t) => t.id === editId) : undefined;
+  const isEditing = Boolean(editId);
 
   const [direction, setDirection] = useState<TransactionDirection>("expense");
   const [rawAmount, setRawAmount] = useState(0);
   const [amountError, setAmountError] = useState<string | null>(null);
-  const [categoryId, setCategoryId] = useState(DEFAULT_CATEGORY_ID);
+  const [categoryId, setCategoryId] = useState(DEFAULT_EXPENSE_CATEGORY_ID);
   const [walletId, setWalletId] = useState(wallets[0]?.id ?? "");
   const [selectedDate, setSelectedDate] = useState(REFERENCE_DATE);
   const [note, setNote] = useState("");
   const [status, setStatus] = useState<"idle" | "saving" | "success">("idle");
+  // Tracks which transaction id the form fields were last prefilled from —
+  // React's own recommended "adjust state during render" pattern (not an
+  // effect) for syncing local form state to an external value. On a hard
+  // reload of `?id=...`, `transactions` starts out as the default dataset for
+  // one tick until FinanceContext's own localStorage hydration lands; this
+  // re-runs once that lands and `editingTransaction` actually resolves, so
+  // the form never prefills from stale data.
+  const [prefilledForId, setPrefilledForId] = useState<string | null>(null);
 
   const isExpense = direction === "expense";
+  const categoriesForDirection = getCategoriesForDirection(direction);
+
+  if (editingTransaction && prefilledForId !== editingTransaction.id) {
+    setPrefilledForId(editingTransaction.id);
+    setDirection(editingTransaction.direction);
+    setRawAmount(editingTransaction.amount);
+    setCategoryId(editingTransaction.categoryId);
+    setWalletId(editingTransaction.walletId ?? wallets[0]?.id ?? "");
+    setSelectedDate(new Date(editingTransaction.timestamp));
+    setNote(editingTransaction.note ?? "");
+  }
+
+  function handleDirectionChange(next: TransactionDirection) {
+    setDirection(next);
+    // Reset the category if the current pick doesn't apply to the new
+    // direction (e.g. "Makan" isn't offered under Duit Masuk).
+    const stillApplies = getCategoriesForDirection(next).some((c) => c.id === categoryId);
+    if (!stillApplies) {
+      setCategoryId(next === "expense" ? DEFAULT_EXPENSE_CATEGORY_ID : DEFAULT_INCOME_CATEGORY_ID);
+    }
+  }
 
   function addAmount(value: number) {
     setRawAmount((v) => v + value);
@@ -69,17 +117,29 @@ export default function CatatTransaksiPage() {
     setStatus("saving");
     window.setTimeout(() => {
       const category = getCategoryById(categoryId);
-      addTransaction({
-        title: note.trim() || category.fullName,
+      const trimmedNote = note.trim();
+      const payload = {
+        title: trimmedNote || category.fullName,
+        categoryId: category.id,
         category: category.fullName,
         categoryIcon: category.icon,
         direction,
         amount: rawAmount,
         walletId,
+        note: trimmedNote || undefined,
         timestamp: combineDateWithTimeOfDay(selectedDate, REFERENCE_DATE),
-      });
+      };
+
+      if (editingTransaction) {
+        updateTransaction({ id: editingTransaction.id, ...payload });
+      } else {
+        addTransaction(payload);
+      }
+
       setStatus("success");
-      window.setTimeout(() => router.push("/"), 900);
+      window.setTimeout(() => {
+        router.push(editingTransaction ? `/transaksi/${editingTransaction.id}` : "/");
+      }, 900);
     }, 500);
   }
 
@@ -95,7 +155,9 @@ export default function CatatTransaksiPage() {
             >
               <span className="material-symbols-outlined text-[24px]">arrow_back</span>
             </button>
-            <h1 className="font-headline-sm text-headline-sm text-on-surface tracking-tight">Catat Transaksi</h1>
+            <h1 className="font-headline-sm text-headline-sm text-on-surface tracking-tight">
+              {isEditing ? "Edit Transaksi" : "Catat Transaksi"}
+            </h1>
           </div>
           <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
             <span className="material-symbols-outlined text-on-primary text-[18px]">person</span>
@@ -110,7 +172,7 @@ export default function CatatTransaksiPage() {
             <div className="p-space-xxs bg-surface-container rounded-full flex items-center shadow-inner">
               <button
                 type="button"
-                onClick={() => setDirection("expense")}
+                onClick={() => handleDirectionChange("expense")}
                 className={
                   isExpense
                     ? "flex-1 py-space-xs px-space-md rounded-full flex items-center justify-center gap-space-xs bg-tertiary text-on-tertiary shadow-sm transition-all duration-200"
@@ -122,7 +184,7 @@ export default function CatatTransaksiPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setDirection("income")}
+                onClick={() => handleDirectionChange("income")}
                 className={
                   !isExpense
                     ? "flex-1 py-space-xs px-space-md rounded-full flex items-center justify-center gap-space-xs bg-primary-container text-on-primary shadow-sm transition-all duration-200"
@@ -191,11 +253,11 @@ export default function CatatTransaksiPage() {
             <div className="flex items-center justify-between mb-space-xs">
               <span className="font-label-lg text-label-lg text-on-surface">Pilih Kategori</span>
               <span className="font-label-md text-label-md text-primary font-bold">
-                {CATEGORY_OPTIONS.length} Kategori
+                {categoriesForDirection.length} Kategori
               </span>
             </div>
             <div className="grid grid-cols-4 gap-space-xs">
-              {CATEGORY_OPTIONS.map((category) => {
+              {categoriesForDirection.map((category) => {
                 const selected = category.id === categoryId;
                 return (
                   <button
@@ -328,7 +390,7 @@ export default function CatatTransaksiPage() {
               {status === "idle" && (
                 <>
                   <span className="material-symbols-outlined text-[22px]">check_circle</span>
-                  <span>Simpan Transaksi</span>
+                  <span>{isEditing ? "Simpan Perubahan" : "Simpan Transaksi"}</span>
                 </>
               )}
               {status === "saving" && (

@@ -4,8 +4,8 @@ import { FinanceProvider } from "@/lib/finance-context";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Laporan Keuangan",
-  description: "Aplikasi manajemen keuangan pribadi",
+  title: "KoZa",
+  description: "Mencatat Rapi, Kocek Terjaga",
 };
 
 export const viewport: Viewport = {

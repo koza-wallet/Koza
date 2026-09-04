@@ -54,13 +54,16 @@ export default function LaporanPage() {
     setAnchorDate((a) => shiftAnchor(granularity, a, 1));
   }
 
-  let dashCursor = 0;
+  // Cumulative dash-offset per slice, computed without a mutable accumulator
+  // (the category count is always tiny — top 3 + "Lainnya" — so the O(n^2)
+  // re-sum per slice costs nothing).
   const donutSlices = report.categorySlices.map((slice, i) => {
     const dash = (slice.percentage / 100) * DONUT_CIRCUMFERENCE;
     const gap = DONUT_CIRCUMFERENCE - dash;
-    const offset = -dashCursor;
-    dashCursor += dash;
-    return { ...slice, dash, gap, offset, theme: SLICE_THEME[i] ?? SLICE_THEME[3] };
+    const priorDash = report.categorySlices
+      .slice(0, i)
+      .reduce((sum, s) => sum + (s.percentage / 100) * DONUT_CIRCUMFERENCE, 0);
+    return { ...slice, dash, gap, offset: -priorDash, theme: SLICE_THEME[i] ?? SLICE_THEME[3] };
   });
 
   const rankedCategories = report.categorySlices.filter((s) => s.category !== "Lainnya");
