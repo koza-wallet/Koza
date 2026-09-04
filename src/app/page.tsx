@@ -80,7 +80,7 @@ export default function BerandaPage() {
 
           <div className="px-margin-screen flex flex-col gap-space-lg">
             {/* Hero Total Balance Card */}
-            <div className="relative overflow-hidden rounded-[22px] bg-gradient-to-br from-[#005236] via-[#006c49] to-[#003823] p-space-lg text-on-primary shadow-xl">
+            <div className="relative overflow-hidden rounded-[22px] bg-gradient-to-br from-[#005236] via-[#006c49] to-[#003823] p-space-lg text-white shadow-xl">
               <div className="absolute -right-10 -top-10 w-44 h-44 rounded-full bg-primary-fixed/10 blur-2xl pointer-events-none" />
               <div className="absolute -left-12 -bottom-12 w-48 h-48 rounded-full bg-secondary-container/10 blur-3xl pointer-events-none" />
               <div className="relative z-10 flex flex-col gap-space-md">
@@ -94,7 +94,7 @@ export default function BerandaPage() {
                   <button
                     onClick={() => setIsBalanceHidden((v) => !v)}
                     aria-label={isBalanceHidden ? "Tampilkan saldo" : "Sembunyikan saldo"}
-                    className="flex items-center justify-center w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 transition-all text-on-primary"
+                    className="flex items-center justify-center w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 transition-all text-white"
                   >
                     <span className="material-symbols-outlined text-[18px]">
                       {isBalanceHidden ? "visibility_off" : "visibility"}
@@ -113,22 +113,22 @@ export default function BerandaPage() {
                       <span className="material-symbols-outlined text-[13px]">trending_up</span>
                       +2.4% bln ini
                     </span>
-                    <span className="font-body-sm text-body-sm opacity-75">Dompet Aktif &amp; Simpanan</span>
+                    <span className="font-body-sm text-body-sm text-white/80">Dompet Aktif &amp; Simpanan</span>
                   </div>
                 </div>
                 {/* Micro Quick Actions Bar inside Card */}
                 <div className="pt-space-xs flex items-center justify-between gap-space-xs">
                   <button className="flex-1 py-2 px-space-xs bg-white/10 hover:bg-white/15 active:scale-98 rounded-xl flex items-center justify-center gap-1.5 transition-all">
                     <span className="material-symbols-outlined text-[16px] text-primary-fixed">add_circle</span>
-                    <span className="font-label-md text-label-md text-on-primary">Top Up</span>
+                    <span className="font-label-md text-label-md text-white/90">Top Up</span>
                   </button>
                   <button className="flex-1 py-2 px-space-xs bg-white/10 hover:bg-white/15 active:scale-98 rounded-xl flex items-center justify-center gap-1.5 transition-all">
                     <span className="material-symbols-outlined text-[16px] text-secondary-fixed">send_money</span>
-                    <span className="font-label-md text-label-md text-on-primary">Transfer</span>
+                    <span className="font-label-md text-label-md text-white/90">Transfer</span>
                   </button>
                   <button className="flex-1 py-2 px-space-xs bg-white/10 hover:bg-white/15 active:scale-98 rounded-xl flex items-center justify-center gap-1.5 transition-all">
                     <span className="material-symbols-outlined text-[16px] text-primary-fixed-dim">savings</span>
-                    <span className="font-label-md text-label-md text-on-primary">Kantong</span>
+                    <span className="font-label-md text-label-md text-white/90">Kantong</span>
                   </button>
                 </div>
               </div>
