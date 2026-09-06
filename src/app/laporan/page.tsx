@@ -6,7 +6,7 @@ import { downloadCsv, transactionsToCsv } from "@/lib/csv-export";
 import { useFinance } from "@/lib/finance-context";
 import { getPeriodReport, shiftAnchor, type ReportGranularity } from "@/lib/report";
 import { formatCompactRupiah, formatRupiahAmount } from "@/lib/format";
-import { REFERENCE_DATE } from "@/lib/mock-data";
+
 
 /** Lowercase, dash-separated, ASCII-only — safe as a filename fragment. */
 function slugify(text: string): string {
@@ -43,7 +43,7 @@ function formatDelta(changePct: number | null, previousLabel: string): string {
 export default function LaporanPage() {
   const { transactions, wallets } = useFinance();
   const [granularity, setGranularity] = useState<ReportGranularity>("bulanan");
-  const [anchorDate, setAnchorDate] = useState<Date>(REFERENCE_DATE);
+  const [anchorDate, setAnchorDate] = useState<Date>(() => new Date());
 
   const report = useMemo(
     () => getPeriodReport(transactions, granularity, anchorDate),
@@ -62,7 +62,7 @@ export default function LaporanPage() {
 
   function handleGranularityChange(next: ReportGranularity) {
     setGranularity(next);
-    setAnchorDate(REFERENCE_DATE);
+    setAnchorDate(new Date());
   }
 
   function handlePrevPeriod() {

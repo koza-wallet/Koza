@@ -3,16 +3,36 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import { getUserProfileAction, setSubscriptionTierAction } from "@/actions/finance";
 
 export default function PengaturanPage() {
   const router = useRouter();
   const [darkMode, setDarkMode] = useState(true);
+  const [dbUserEmail, setDbUserEmail] = useState("");
+  const [dbTier, setDbTier] = useState("FREE");
 
-  // Sync mode dengan HTML class Tailwind
+  // Sync mode dengan HTML class Tailwind & Fetch Profil
   useEffect(() => {
     const isDark = document.documentElement.classList.contains("dark");
     setDarkMode(isDark);
+
+    getUserProfileAction().then((data) => {
+      if (data) {
+        if (data.email) setDbUserEmail(data.email);
+        setDbTier(data.subscriptionTier);
+      }
+    });
   }, []);
+
+  const handleDevTierChange = async (tier: string) => {
+    try {
+      await setSubscriptionTierAction(tier);
+      setDbTier(tier);
+      alert(`Tier berhasil diubah ke ${tier}`);
+    } catch (err) {
+      alert("Gagal mengubah tier");
+    }
+  };
 
   const toggleDarkMode = () => {
     const isDark = !darkMode;
@@ -151,6 +171,47 @@ export default function PengaturanPage() {
             </button>
           </div>
         </section>
+
+        {/* Developer Menu (Khusus Novriekadito) */}
+        {(dbUserEmail === "novriekadito9@gmail.com" || dbUserEmail === "novriekadito@gmail.com") && (
+          <section className="space-y-space-xs mt-8">
+            <h2 className="font-label-caps text-label-caps text-amber-500 uppercase tracking-wider pl-space-xxs flex items-center gap-2">
+              <span className="material-symbols-outlined text-[16px]">code</span>
+              Developer Tools
+            </h2>
+            <div className="bg-amber-500/10 rounded-xl shadow-sm border border-amber-500/30 p-space-md">
+              <p className="font-body-sm text-body-sm text-amber-600 dark:text-amber-400 mb-4">
+                Pilih status langganan untuk melakukan pengetesan UI Paywall & Fitur Premium.
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => handleDevTierChange("FREE")}
+                  className={`p-2 rounded-lg font-label-md text-label-md border-2 transition-all ${
+                    dbTier === "FREE" ? "border-amber-500 bg-amber-500/20 text-amber-700 dark:text-amber-300" : "border-transparent bg-surface text-on-surface-variant hover:bg-surface-container"
+                  }`}
+                >
+                  FREE
+                </button>
+                <button
+                  onClick={() => handleDevTierChange("PREMIUM")}
+                  className={`p-2 rounded-lg font-label-md text-label-md border-2 transition-all ${
+                    dbTier === "PREMIUM" ? "border-amber-500 bg-amber-500/20 text-amber-700 dark:text-amber-300" : "border-transparent bg-surface text-on-surface-variant hover:bg-surface-container"
+                  }`}
+                >
+                  PREMIUM
+                </button>
+                <button
+                  onClick={() => handleDevTierChange("DEVELOPER")}
+                  className={`p-2 rounded-lg font-label-md text-label-md border-2 transition-all ${
+                    dbTier === "DEVELOPER" ? "border-amber-500 bg-amber-500/20 text-amber-700 dark:text-amber-300" : "border-transparent bg-surface text-on-surface-variant hover:bg-surface-container"
+                  }`}
+                >
+                  DEVELOPER
+                </button>
+              </div>
+            </div>
+          </section>
+        )}
 
       </main>
     </>

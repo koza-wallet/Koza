@@ -9,11 +9,12 @@ import { getHealthScoreLabel } from "@/lib/finance";
 import { formatMonthYearId, getInitials } from "@/lib/format";
 import { useFinance } from "@/lib/finance-context";
 import { currentUser as mockUser } from "@/lib/mock-data";
-import { setProTierAction, getUserProfileAction } from "@/actions/finance";
+import { setSubscriptionTierAction, getUserProfileAction } from "@/actions/finance";
 import { updateUserAvatarAction } from "@/actions/auth";
 import { savePushSubscriptionAction } from "@/actions/notifications";
 import { createClient } from "@/utils/supabase/client";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState as useState2 } from "react";
+import { PaywallModal } from "@/components/PaywallModal";
 
 export default function ProfilPage() {
   const { data: session, loading } = useSession();
@@ -21,7 +22,9 @@ export default function ProfilPage() {
   const { wallets, transactions, resetToDefault } = useFinance();
   const [isReminderOn, setIsReminderOn] = useState(false);
   const [dbSubscriptionTier, setDbSubscriptionTier] = useState<string | null>(null);
+  const [dbUserEmail, setDbUserEmail] = useState<string>("");
   const [isUploading, setIsUploading] = useState(false);
+  const [isPaywallOpen, setIsPaywallOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -30,6 +33,7 @@ export default function ProfilPage() {
       if (data) {
         setDbSubscriptionTier(data.subscriptionTier);
         setIsReminderOn(data.isReminderOn);
+        if (data.email) setDbUserEmail(data.email);
       } else {
         setDbSubscriptionTier("FREE");
       }
@@ -51,6 +55,8 @@ export default function ProfilPage() {
   const initials = getInitials(fullName);
   const healthLabel = getHealthScoreLabel(mockUser.healthScore);
   const memberSinceLabel = formatMonthYearId(new Date(mockUser.memberSince));
+  
+  const isPremiumOrDev = dbSubscriptionTier === "PREMIUM" || dbSubscriptionTier === "DEVELOPER" || dbSubscriptionTier === "PRO";
 
   function handleResetToDefault() {
     const confirmed = window.confirm(
@@ -64,23 +70,17 @@ export default function ProfilPage() {
     downloadCsv("koza-riwayat-transaksi.csv", csv);
   }
 
-  async function handleUpgradePro() {
+  async function handlePaymentSuccess() {
     try {
-      await setProTierAction();
-      setDbSubscriptionTier("PRO");
-      alert("Berhasil! Akun Anda kini berstatus PRO. Coba nyalakan Pengingat Harian sekarang.");
+      await setSubscriptionTierAction("PREMIUM");
     } catch (e) {
-      alert("Gagal melakukan upgrade.");
+      // ignore
     }
   }
 
   async function handleToggleReminder() {
-    const isPro = dbSubscriptionTier === "PRO";
-    if (!isPro && !isReminderOn) {
-      const confirmUpgrade = window.confirm("Fitur Pengingat Harian eksklusif untuk pelanggan PRO. Ingin upgrade akun (Gratis untuk demo) sekarang?");
-      if (confirmUpgrade) {
-        handleUpgradePro();
-      }
+    if (!isPremiumOrDev && !isReminderOn) {
+      setIsPaywallOpen(true);
       return;
     }
 
@@ -242,10 +242,21 @@ export default function ProfilPage() {
                   <h3 className="font-headline-sm text-headline-sm text-on-surface truncate">
                     {fullName}
                   </h3>
-                  <span className="inline-flex items-center gap-1 bg-surface-container-low text-primary px-2.5 py-0.5 rounded-full font-label-md text-label-md font-semibold">
-                    <span className="w-1.5 h-1.5 rounded-full bg-primary-container" />
-                    {dbSubscriptionTier === "PRO" ? "PRO" : "FREE"}
-                  </span>
+                  {dbSubscriptionTier === "DEVELOPER" ? (
+                    <span className="inline-flex items-center gap-1 bg-amber-500/20 text-amber-500 px-2.5 py-0.5 rounded-full font-label-md text-label-md font-bold">
+                      <span className="material-symbols-outlined text-[14px]">code</span>
+                      DEVELOPER
+                    </span>
+                  ) : dbSubscriptionTier === "PREMIUM" || dbSubscriptionTier === "PRO" ? (
+                    <span className="inline-flex items-center gap-1 bg-primary-container text-on-primary-container px-2.5 py-0.5 rounded-full font-label-md text-label-md font-bold">
+                      <span className="material-symbols-outlined text-[14px]">workspace_premium</span>
+                      PREMIUM
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 bg-surface-container-high text-on-surface-variant px-2.5 py-0.5 rounded-full font-label-md text-label-md font-semibold">
+                      FREE
+                    </span>
+                  )}
                 </div>
                 <p className="font-body-sm text-body-sm text-on-surface-variant truncate">
                   {user?.email || mockUser.email} • Sejak {memberSinceLabel}
@@ -277,6 +288,30 @@ export default function ProfilPage() {
               </div>
             </div>
           </section>
+
+          {/* Banner Upgrade untuk akun FREE */}
+          {!isPremiumOrDev && (
+            <section className="mb-space-xs -mt-1">
+              <button
+                onClick={() => setIsPaywallOpen(true)}
+                className="w-full relative overflow-hidden bg-gradient-to-r from-primary to-primary-container p-space-md rounded-xl flex items-center justify-between shadow-md hover:shadow-lg transition-shadow group text-left"
+              >
+                <div className="absolute -right-4 -top-8 w-24 h-24 bg-white/20 rounded-full blur-xl pointer-events-none" />
+                <div className="relative z-10 text-on-primary">
+                  <h3 className="font-label-lg text-label-lg font-bold mb-1 flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-[18px]">workspace_premium</span>
+                    Tingkatkan ke PREMIUM
+                  </h3>
+                  <p className="font-body-sm text-body-sm opacity-90">
+                    Buka pengingat harian & ekspor laporan tanpa batas.
+                  </p>
+                </div>
+                <div className="relative z-10 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0">
+                  <span className="material-symbols-outlined text-on-primary text-[20px]">arrow_forward</span>
+                </div>
+              </button>
+            </section>
+          )}
 
           <section className="space-y-space-xs">
             <div className="flex items-center justify-between px-space-xxs">
@@ -311,7 +346,7 @@ export default function ProfilPage() {
                   <div className="min-w-0">
                     <h4 className="font-label-lg text-label-lg text-on-surface">Kategori Transaksi</h4>
                     <p className="font-body-sm text-body-sm text-on-surface-variant truncate">
-                      Atur pos Duit Masuk &amp; Duit Keluar
+                      Atur pos Pemasukan &amp; Pengeluaran
                     </p>
                   </div>
                 </div>
@@ -384,7 +419,7 @@ export default function ProfilPage() {
                 </button>
               </div>
 
-              <a className="flex items-center justify-between p-space-md hover:bg-surface-container-low transition-colors group" href="#">
+              <Link className="flex items-center justify-between p-space-md hover:bg-surface-container-low transition-colors group" href="/bantuan">
                 <div className="flex items-center gap-space-md min-w-0">
                   <div className="w-10 h-10 rounded-lg bg-surface-container-low text-on-surface-variant flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
                     <span className="material-symbols-outlined text-[20px]">help_outline</span>
@@ -399,25 +434,10 @@ export default function ProfilPage() {
                 <span className="material-symbols-outlined text-on-surface-variant text-[20px] ml-space-xs">
                   chevron_right
                 </span>
-              </a>
+              </Link>
             </div>
           </section>
 
-          <section className="space-y-space-xs pt-4">
-             <div className="px-space-xxs">
-              <span className="font-label-caps text-label-caps text-tertiary uppercase tracking-wider">
-                Menu Developer
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={handleUpgradePro}
-              className="w-full bg-tertiary-container text-on-tertiary-container hover:bg-tertiary/20 font-label-lg text-label-lg py-3.5 px-space-md rounded-xl flex items-center justify-center gap-space-xs transition-all shadow-sm"
-            >
-              <span className="material-symbols-outlined text-[20px]">workspace_premium</span>
-              <span>Aktifkan Langganan PRO (Gratis)</span>
-            </button>
-          </section>
 
           <div className="pt-space-xs space-y-space-md">
             <button
@@ -442,6 +462,16 @@ export default function ProfilPage() {
           </div>
         </div>
       </main>
+
+      <PaywallModal 
+        isOpen={isPaywallOpen} 
+        onClose={() => setIsPaywallOpen(false)} 
+        onSuccess={async () => {
+          await handlePaymentSuccess();
+          setIsPaywallOpen(false);
+          alert("Pembayaran Berhasil! Silakan muat ulang halaman untuk melihat status PREMIUM Anda.");
+        }} 
+      />
 
       <BottomNav />
     </>

@@ -2,14 +2,16 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useSession } from "@/lib/supabase-auth";
 import { BottomNav } from "@/components/BottomNav";
 import { TransactionListItem } from "@/components/TransactionListItem";
 import { getMonthlySummary, getRecentTransactions, getTotalBalance } from "@/lib/finance";
 import { formatFullDateId, formatRupiahAmount, formatSignedRupiah } from "@/lib/format";
 import { useFinance } from "@/lib/finance-context";
-import { REFERENCE_DATE, currentUser as mockUser } from "@/lib/mock-data";
+import { calculateHealthScore } from "@/lib/analysis";
+import { currentUser as mockUser } from "@/lib/mock-data";
+import { QuickRepaymentModal } from "@/components/QuickRepaymentModal";
 
 const HIDDEN_BALANCE_PLACEHOLDER = "••••••••";
 const RECENT_TRANSACTIONS_LIMIT = 3;
@@ -19,8 +21,10 @@ export default function BerandaPage() {
   const { data: session, loading } = useSession();
   const user = session?.user;
   const [isBalanceHidden, setIsBalanceHidden] = useState(false);
+  const [isRepayModalOpen, setIsRepayModalOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const { wallets, transactions } = useFinance();
+  const { wallets, transactions, pockets } = useFinance();
+  const [currentDate] = useState(() => new Date());
 
   function showToast(message: string) {
     setToast(message);
@@ -28,8 +32,52 @@ export default function BerandaPage() {
   }
 
   const totalBalance = getTotalBalance(wallets);
-  const monthlySummary = getMonthlySummary(transactions, REFERENCE_DATE);
+  const monthlySummary = getMonthlySummary(transactions, currentDate);
   const recentTransactions = getRecentTransactions(transactions, RECENT_TRANSACTIONS_LIMIT);
+  const healthData = useMemo(() => calculateHealthScore(transactions, wallets, pockets?.length || 0), [transactions, wallets, pockets]);
+
+  const monthLabelName = new Intl.DateTimeFormat("id-ID", { month: "long" }).format(currentDate);
+  const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
+  const chartPeriodLabel = `1 - ${lastDayOfMonth} ${monthLabelName}`;
+
+  const startOfMonthBalance = totalBalance - monthlySummary.net;
+  const percentageChange = startOfMonthBalance === 0 ? 0 : (monthlySummary.net / startOfMonthBalance) * 100;
+  const isNetPositive = monthlySummary.net >= 0;
+
+  // Kalkulasi 4-titik (mingguan) untuk chart SVG dinamis
+  const { pathD, fillPath, points } = useMemo(() => {
+    const monthlyTransactions = transactions.filter(t => new Date(t.timestamp).getMonth() === currentDate.getMonth() && new Date(t.timestamp).getFullYear() === currentDate.getFullYear());
+    
+    const bucketSums = [0, 0, 0, 0];
+    monthlyTransactions.forEach(t => {
+      const day = new Date(t.timestamp).getDate();
+      const bucket = Math.min(3, Math.floor((day - 1) / 7.75));
+      bucketSums[bucket] += t.direction === 'income' ? t.amount : -t.amount;
+    });
+
+    let runningTotal = totalBalance - monthlySummary.net;
+    const cumulative = bucketSums.map(sum => {
+      runningTotal += sum;
+      return runningTotal;
+    });
+
+    const minBal = Math.min(totalBalance - monthlySummary.net, ...cumulative);
+    const maxBal = Math.max(totalBalance - monthlySummary.net, ...cumulative);
+    const range = (maxBal - minBal) || 1;
+
+    const mapY = (val: number) => 80 - ((val - minBal) / range) * 70;
+    
+    const yStart = mapY(totalBalance - monthlySummary.net);
+    const y1 = mapY(cumulative[0]);
+    const y2 = mapY(cumulative[1]);
+    const y3 = mapY(cumulative[2]);
+    const y4 = mapY(cumulative[3]);
+
+    const pd = `M 0,${yStart.toFixed(1)} Q 40,${((yStart+y1)/2).toFixed(1)} 80,${y1.toFixed(1)} T 160,${y2.toFixed(1)} T 240,${y3.toFixed(1)} T 320,${y4.toFixed(1)}`;
+    const fp = `${pd} L 320,90 L 0,90 Z`;
+    
+    return { pathD: pd, fillPath: fp, points: [y1, y2, y3, y4] };
+  }, [transactions, totalBalance, monthlySummary.net, currentDate]);
 
   return (
     <>
@@ -68,7 +116,7 @@ export default function BerandaPage() {
               <div className="flex flex-col">
                 <span className="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1">
                   <span className="material-symbols-outlined text-[14px]">calendar_today</span>
-                  {formatFullDateId(REFERENCE_DATE)}
+                  {formatFullDateId(currentDate)}
                 </span>
                 <h2 className="font-headline-md text-headline-md text-on-surface tracking-tight">
                   Halo, {user?.name?.split(' ')[0] || mockUser.name}! 👋
@@ -76,12 +124,13 @@ export default function BerandaPage() {
               </div>
             </div>
             <div className="flex items-center gap-space-xs">
-              <button
+              <Link
+                href="/kantong"
                 aria-label="Target Keuangan"
                 className="w-10 h-10 rounded-full bg-surface-container-lowest shadow-sm flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors"
               >
                 <span className="material-symbols-outlined text-[20px]">donut_small</span>
-              </button>
+              </Link>
               <div className="relative">
                 <button
                   onClick={() => showToast("Belum ada notifikasi baru")}
@@ -125,27 +174,32 @@ export default function BerandaPage() {
                       {isBalanceHidden ? HIDDEN_BALANCE_PLACEHOLDER : formatRupiahAmount(totalBalance)}
                     </span>
                   </div>
-                  <div className="flex items-center gap-space-xs pt-1">
-                    <span className="inline-flex items-center gap-1 rounded-full bg-primary-fixed/20 px-2.5 py-0.5 font-label-caps text-label-caps text-primary-fixed">
-                      <span className="material-symbols-outlined text-[13px]">trending_up</span>
-                      +2.4% bln ini
+                  {/* Context Tag */}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mt-4 text-on-primary/90">
+                    <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full font-label-sm text-label-sm w-fit ${
+                      isNetPositive ? "bg-white/20 text-white" : "bg-error/20 text-error-container"
+                    }`}>
+                      <span className="material-symbols-outlined text-[14px]">
+                        {isNetPositive ? "trending_up" : "trending_down"}
+                      </span>
+                      <span>
+                        {isNetPositive ? "+" : ""}{percentageChange.toFixed(1)}% bulan ini
+                      </span>
+                    </div>
+                    <span className="font-label-sm text-label-sm opacity-80 mt-1 sm:mt-0">
+                      (Saldo awal bulan: Rp {formatRupiahAmount(startOfMonthBalance)})
                     </span>
-                    <span className="font-body-sm text-body-sm text-white/80">Dompet Aktif &amp; Simpanan</span>
                   </div>
                 </div>
                 {/* Micro Quick Actions Bar inside Card */}
-                <div className="pt-space-xs flex items-center justify-between gap-space-xs">
-                  <button onClick={() => showToast("Fitur Top Up akan hadir di rilis mendatang")} className="flex-1 py-2 px-space-xs bg-white/10 hover:bg-white/15 active:scale-98 rounded-xl flex items-center justify-center gap-1.5 transition-all">
-                    <span className="material-symbols-outlined text-[16px] text-primary-fixed">add_circle</span>
-                    <span className="font-label-md text-label-md text-white/90">Top Up</span>
-                  </button>
-                  <button onClick={() => showToast("Fitur Transfer akan hadir di rilis mendatang")} className="flex-1 py-2 px-space-xs bg-white/10 hover:bg-white/15 active:scale-98 rounded-xl flex items-center justify-center gap-1.5 transition-all">
-                    <span className="material-symbols-outlined text-[16px] text-secondary-fixed">send_money</span>
-                    <span className="font-label-md text-label-md text-white/90">Transfer</span>
-                  </button>
+                <div className="flex items-center gap-space-xs mt-space-md pt-space-sm border-t border-white/10">
                   <button onClick={() => router.push("/kantong")} className="flex-1 py-2 px-space-xs bg-white/10 hover:bg-white/15 active:scale-98 rounded-xl flex items-center justify-center gap-1.5 transition-all">
                     <span className="material-symbols-outlined text-[16px] text-primary-fixed-dim">savings</span>
                     <span className="font-label-md text-label-md text-white/90">Kantong</span>
+                  </button>
+                  <button onClick={() => setIsRepayModalOpen(true)} className="flex-1 py-2 px-space-xs bg-white/10 hover:bg-white/15 active:scale-98 rounded-xl flex items-center justify-center gap-1.5 transition-all">
+                    <span className="material-symbols-outlined text-[16px] text-error-container">payments</span>
+                    <span className="font-label-md text-label-md text-white/90">Bayar/Cicil</span>
                   </button>
                 </div>
               </div>
@@ -156,7 +210,7 @@ export default function BerandaPage() {
               <div className="bg-surface-container-lowest p-space-md rounded-[20px] shadow-sm flex flex-col justify-between relative overflow-hidden">
                 <div className="absolute -right-6 -bottom-6 w-16 h-16 rounded-full bg-primary/5 pointer-events-none" />
                 <div className="flex items-center justify-between mb-space-sm">
-                  <span className="font-label-md text-label-md text-on-surface-variant font-semibold">Duit Masuk</span>
+                  <span className="font-label-md text-label-md text-on-surface-variant font-semibold">Pemasukan</span>
                   <div className="w-8 h-8 rounded-full bg-primary-container/20 flex items-center justify-center text-primary flex-shrink-0">
                     <span className="material-symbols-outlined text-[18px]">arrow_downward_alt</span>
                   </div>
@@ -173,7 +227,7 @@ export default function BerandaPage() {
               <div className="bg-surface-container-lowest p-space-md rounded-[20px] shadow-sm flex flex-col justify-between relative overflow-hidden">
                 <div className="absolute -right-6 -bottom-6 w-16 h-16 rounded-full bg-tertiary/5 pointer-events-none" />
                 <div className="flex items-center justify-between mb-space-sm">
-                  <span className="font-label-md text-label-md text-on-surface-variant font-semibold">Duit Keluar</span>
+                  <span className="font-label-md text-label-md text-on-surface-variant font-semibold">Pengeluaran</span>
                   <div className="w-8 h-8 rounded-full bg-tertiary-container/30 flex items-center justify-center text-tertiary flex-shrink-0">
                     <span className="material-symbols-outlined text-[18px]">arrow_upward_alt</span>
                   </div>
@@ -202,7 +256,7 @@ export default function BerandaPage() {
                   </span>
                 </div>
                 <span className="px-2.5 py-1 rounded-full bg-surface-container-low font-label-caps text-label-caps text-on-surface-variant font-semibold">
-                  1 - 31 Juli
+                  {chartPeriodLabel}
                 </span>
               </div>
               <div className="w-full pt-space-xs pb-space-xxs flex flex-col">
@@ -216,19 +270,19 @@ export default function BerandaPage() {
                     </defs>
                     <line stroke="#dae2fd" strokeDasharray="3 3" strokeOpacity="0.4" x1="0" x2="320" y1="20" y2="20" />
                     <line stroke="#dae2fd" strokeDasharray="3 3" strokeOpacity="0.4" x1="0" x2="320" y1="55" y2="55" />
-                    <path d="M 0,72 Q 40,65 80,45 T 160,35 T 240,50 T 320,18 L 320,90 L 0,90 Z" fill="url(#flowGradient)" />
+                    <path d={fillPath} fill="url(#flowGradient)" />
                     <path
-                      d="M 0,72 Q 40,65 80,45 T 160,35 T 240,50 T 320,18"
+                      d={pathD}
                       fill="none"
                       stroke="#006c49"
                       strokeLinecap="round"
                       strokeWidth="3"
                     />
-                    <circle cx="80" cy="45" fill="#faf8ff" r="3.5" stroke="#006c49" strokeWidth="2.5" />
-                    <circle cx="160" cy="35" fill="#faf8ff" r="3.5" stroke="#006c49" strokeWidth="2.5" />
-                    <circle cx="240" cy="50" fill="#faf8ff" r="3.5" stroke="#006c49" strokeWidth="2.5" />
-                    <circle cx="320" cy="18" fill="#10B981" r="5" />
-                    <circle cx="320" cy="18" fill="#10B981" fillOpacity="0.25" r="9" />
+                    <circle cx="80" cy={points[0]} fill="#faf8ff" r="3.5" stroke="#006c49" strokeWidth="2.5" />
+                    <circle cx="160" cy={points[1]} fill="#faf8ff" r="3.5" stroke="#006c49" strokeWidth="2.5" />
+                    <circle cx="240" cy={points[2]} fill="#faf8ff" r="3.5" stroke="#006c49" strokeWidth="2.5" />
+                    <circle cx="320" cy={points[3]} fill="#10B981" r="5" stroke="#faf8ff" strokeWidth="2" />
+                    <circle cx="320" cy={points[3]} fill="#10B981" fillOpacity="0.25" r="9" />
                   </svg>
                 </div>
                 <div className="flex items-center justify-between text-on-surface-variant font-label-md text-label-md pt-1 px-1">
@@ -248,16 +302,16 @@ export default function BerandaPage() {
                 </div>
                 <div className="flex flex-col">
                   <span className="font-label-lg text-label-lg text-on-surface">
-                    Skor Kesehatan: {mockUser.healthScore}/100
+                    Skor Kesehatan: {healthData.totalScore}/100
                   </span>
-                  <span className="font-body-sm text-body-sm text-on-surface-variant">
-                    Kebutuhan primer terkendali rapi!
+                  <span className="font-body-sm text-body-sm text-on-surface-variant truncate max-w-[200px]">
+                    {healthData.overallTip}
                   </span>
                 </div>
               </div>
-              <button onClick={() => showToast("Fitur Analisis akan hadir di rilis mendatang")} className="px-3 py-1.5 rounded-full bg-surface-container-highest text-primary font-label-md text-label-md hover:bg-surface-container-high transition-colors">
+              <Link href="/analisis" className="px-3 py-1.5 rounded-full bg-surface-container-highest text-primary font-label-md text-label-md hover:bg-surface-container-high transition-colors">
                 Analisis
-              </button>
+              </Link>
             </div>
 
             {/* Recent Activity Section */}
@@ -284,7 +338,7 @@ export default function BerandaPage() {
                   <TransactionListItem
                     key={transaction.id}
                     transaction={transaction}
-                    referenceDate={REFERENCE_DATE}
+                    referenceDate={currentDate}
                     onClick={() => router.push(`/transaksi/${transaction.id}`)}
                   />
                 ))}
@@ -307,6 +361,11 @@ export default function BerandaPage() {
         </span>
         <span className="font-body-sm text-body-sm text-center">{toast}</span>
       </div>
+
+      <QuickRepaymentModal 
+        isOpen={isRepayModalOpen}
+        onClose={() => setIsRepayModalOpen(false)}
+      />
 
       <BottomNav />
     </>

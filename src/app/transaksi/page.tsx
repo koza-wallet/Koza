@@ -8,15 +8,15 @@ import { getCategoryById } from "@/lib/categories";
 import { useFinance } from "@/lib/finance-context";
 import { getMonthlySummary, getWalletDisplayLabel, groupTransactionsByDay, isSameMonth } from "@/lib/finance";
 import { formatDayGroupLabel, formatSignedRupiahCompact } from "@/lib/format";
-import { REFERENCE_DATE } from "@/lib/mock-data";
+
 import type { TransactionDirection } from "@/lib/types";
 
 type FilterType = "all" | "keluar" | "masuk" | "bulan-ini";
 
 const FILTER_CHIPS: { type: FilterType; label: string }[] = [
   { type: "all", label: "Semua" },
-  { type: "keluar", label: "Duit Keluar" },
-  { type: "masuk", label: "Duit Masuk" },
+  { type: "keluar", label: "Pengeluaran" },
+  { type: "masuk", label: "Pemasukan" },
   { type: "bulan-ini", label: "Bulan Ini" },
 ];
 
@@ -40,15 +40,16 @@ function RiwayatTransaksiContent() {
   const categoryId = searchParams.get("category");
 
   const { transactions, wallets } = useFinance();
-  const [activeFilter, setActiveFilter] = useState<FilterType>("all");
+  const [activeFilter, setActiveFilter] = useState<FilterType>("bulan-ini");
+  const [currentDate] = useState(() => new Date());
   const [searchQuery, setSearchQuery] = useState("");
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const [walletFilter, setWalletFilter] = useState<string>("all");
   const [sortAsc, setSortAsc] = useState(false);
 
-  const monthlySummary = getMonthlySummary(transactions, REFERENCE_DATE);
+  const monthlySummary = getMonthlySummary(transactions, currentDate);
   const monthLabel = new Intl.DateTimeFormat("id-ID", { month: "long", year: "numeric" }).format(
-    REFERENCE_DATE
+    currentDate
   );
 
   const categoryFilterLabel = categoryId ? getCategoryById(categoryId).fullName : null;
@@ -57,7 +58,7 @@ function RiwayatTransaksiContent() {
   const filteredTransactions = transactions.filter((t) => {
     const requiredDirection = DIRECTION_BY_FILTER[activeFilter];
     const matchesDirection = !requiredDirection || t.direction === requiredDirection;
-    const matchesMonth = activeFilter !== "bulan-ini" || isSameMonth(t.timestamp, REFERENCE_DATE);
+    const matchesMonth = activeFilter !== "bulan-ini" || isSameMonth(t.timestamp, currentDate);
     const matchesSearch = query === "" || t.title.toLowerCase().includes(query);
     const matchesCategory = !categoryId || t.categoryId === categoryId;
     const matchesWallet = walletFilter === "all" || t.walletId === walletFilter;
@@ -198,7 +199,7 @@ function RiwayatTransaksiContent() {
                   <section key={group.dateKey} className="group-section flex flex-col gap-space-xs">
                     <div className="flex items-center justify-between px-1">
                       <span className="font-label-caps text-label-caps text-on-surface-variant uppercase">
-                        {formatDayGroupLabel(group.date, REFERENCE_DATE)}
+                        {formatDayGroupLabel(group.date, currentDate)}
                       </span>
                       <span
                         className={`font-label-caps text-label-caps ${

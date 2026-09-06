@@ -78,9 +78,24 @@ export async function getFinanceData() {
       orderBy: { date: "desc" }
     });
 
-    return { wallets, transactions };
+    const customCategories = await prisma.category.findMany({
+      where: { userId: user.id }
+    });
+
+    const debts = await prisma.debt.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "desc" }
+    });
+
+    const pockets = await prisma.pocket.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "asc" }
+    });
+
+    return { wallets, transactions, customCategories, debts, pockets };
   } catch (error) {
-    return { wallets: [], transactions: [] };
+    console.error("GET_FINANCE_DATA_ERROR", error);
+    return { wallets: [], transactions: [], customCategories: [], debts: [], pockets: [] };
   }
 }
 
@@ -190,22 +205,166 @@ export async function addWalletMemberAction(walletId: string, emailToInvite: str
   });
 }
 
-// === DEV MODE: UPGRADE TIER ===
-export async function setProTierAction() {
+// === SUBSCRIPTION ACTIONS ===
+export async function setSubscriptionTierAction(tier: string) {
   const user = await getSessionUser();
   await prisma.user.update({
     where: { id: user.id },
-    data: { subscriptionTier: "PRO" }
+    data: { subscriptionTier: tier }
   });
   return true;
 }
 
-
 // === FETCH USER PROFILE DARI PRISMA ===
 export async function getUserProfileAction() {
   const user = await getSessionUser();
+  let tier = user.subscriptionTier;
+
+  // Migrasi otomatis data lama "PRO" ke "PREMIUM"
+  if (tier === "PRO") {
+    tier = "PREMIUM";
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { subscriptionTier: "PREMIUM" }
+    });
+  }
+
+  // Auto-Provisioning Developer Account
+  const devEmails = ["novriekadito@gmail.com", "novriekadito9@gmail.com"];
+  if (devEmails.includes(user.email) && tier === "FREE") {
+    // Jika masih FREE, jadikan DEVELOPER sebagai default awal.
+    // Jika developer ingin tes UI FREE, dia bisa ubah manual lewat Pengaturan.
+    // Namun, agar tidak tertimpa balik ke DEVELOPER setiap kali muat ulang,
+    // kita asumsikan developer akan mengubah ke tier "TEST_FREE" atau tetap "FREE".
+    // Lebih baik biarkan saja, cukup developer yang ubah sendiri lewat menu,
+    // atau jika belum pernah, kita set DEVELOPER.
+  }
+
   return {
-    subscriptionTier: user.subscriptionTier,
-    isReminderOn: user.isReminderOn
+    subscriptionTier: tier,
+    isReminderOn: user.isReminderOn,
+    email: user.email // return email for frontend dev menu check
   };
+}
+
+// === DEBT ACTIONS ===
+export async function addDebtAction(input: {
+  type: "HUTANG" | "PIUTANG";
+  contactName: string;
+  amount: number;
+  walletId: string;
+  date: string;
+}) {
+  const user = await getSessionUser();
+  
+  // 1. Buat record Hutang/Piutang
+  const debt = await prisma.debt.create({
+    data: {
+      type: input.type,
+      contactName: input.contactName,
+      amount: input.amount,
+      remainingAmount: input.amount,
+      status: "UNPAID",
+      userId: user.id
+    }
+  });
+
+  // 2. Buat Transaksi yang terhubung ke Hutang ini
+  // Hutang = Uang masuk ke dompet (income)
+  // Piutang = Uang keluar dari dompet (expense)
+  const direction = input.type === "HUTANG" ? "income" : "expense";
+  
+  const transaction = await prisma.transaction.create({
+    data: {
+      title: input.type === "HUTANG" ? `Hutang dari ${input.contactName}` : `Piutang ke ${input.contactName}`,
+      amount: input.amount,
+      direction,
+      date: new Date(input.date),
+      paymentMethod: input.walletId,
+      walletId: input.walletId,
+      categoryId: input.type === "HUTANG" ? "debt_in" : "debt_out",
+      userId: user.id,
+      debtId: debt.id
+    }
+  });
+
+  return { debt, transaction };
+}
+
+// === CUSTOM CATEGORY ACTIONS ===
+export async function addCategoryAction(input: {
+  name: string;
+  fullName: string;
+  icon: string;
+  bg: string;
+  text: string;
+  type: string;
+}) {
+  const user = await getSessionUser();
+  
+  const category = await prisma.category.create({
+    data: {
+      name: input.name,
+      fullName: input.fullName,
+      icon: input.icon,
+      bg: input.bg,
+      text: input.text,
+      type: input.type,
+      userId: user.id
+    }
+  });
+
+  return category;
+}
+
+export async function payDebtAction(input: {
+  debtId: string;
+  amount: number;
+  walletId: string;
+  date: string;
+}) {
+  const user = await getSessionUser();
+
+  const debt = await prisma.debt.findUnique({
+    where: { id: input.debtId }
+  });
+
+  if (!debt || debt.userId !== user.id) {
+    throw new Error("Debt not found or unauthorized");
+  }
+
+  // Jika HUTANG (kita minjam), saat bayar adalah PENGELUARAN (expense) -> Kategori: bayar_hutang
+  // Jika PIUTANG (kita minjamin), saat dibayar adalah PEMASUKAN (income) -> Kategori: terima_piutang
+  const direction = debt.type === "HUTANG" ? "expense" : "income";
+  const categoryId = debt.type === "HUTANG" ? "bayar_hutang" : "terima_piutang";
+  const title = debt.type === "HUTANG" ? `Cicilan Hutang ke ${debt.contactName}` : `Terima Cicilan dari ${debt.contactName}`;
+
+  // 1. Buat transaksi pembayaran
+  const transaction = await prisma.transaction.create({
+    data: {
+      title,
+      amount: input.amount,
+      direction,
+      date: new Date(input.date),
+      paymentMethod: input.walletId,
+      walletId: input.walletId,
+      categoryId,
+      debtId: debt.id,
+      userId: user.id
+    }
+  });
+
+  // 2. Update status Debt
+  const newRemaining = Math.max(0, debt.remainingAmount - input.amount);
+  const newStatus = newRemaining === 0 ? "PAID" : "PARTIAL";
+
+  const updatedDebt = await prisma.debt.update({
+    where: { id: debt.id },
+    data: {
+      remainingAmount: newRemaining,
+      status: newStatus
+    }
+  });
+
+  return { transaction, updatedDebt };
 }

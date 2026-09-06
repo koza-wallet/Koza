@@ -7,7 +7,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { useFinance } from "@/lib/finance-context";
 import { getTotalBalance, getWalletMonthlyNet } from "@/lib/finance";
 import { formatRupiahAmount, formatSignedRupiahCompact } from "@/lib/format";
-import { REFERENCE_DATE } from "@/lib/mock-data";
+
 import type { Wallet, WalletType } from "@/lib/types";
 
 const HIDDEN_BALANCE_PLACEHOLDER = "••••••••••••";
@@ -49,6 +49,7 @@ export default function KelolaDompetPage() {
   const [formAccountNumber, setFormAccountNumber] = useState("");
   const [formBalance, setFormBalance] = useState(0);
   const [formError, setFormError] = useState<string | null>(null);
+  const [currentDate] = useState(() => new Date());
 
   const totalBalance = getTotalBalance(wallets);
 
@@ -248,7 +249,7 @@ export default function KelolaDompetPage() {
           <div className="flex flex-col space-y-space-sm">
             {wallets.map((wallet) => {
               const meta = WALLET_TYPE_META[wallet.type];
-              const monthly = getWalletMonthlyNet(transactions, wallet.id, REFERENCE_DATE);
+              const monthly = getWalletMonthlyNet(transactions, wallet.id, currentDate);
               return (
                 <div
                   key={wallet.id}

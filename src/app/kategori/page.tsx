@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import { useSession } from "@/lib/supabase-auth";
+import { getUserProfileAction } from "@/actions/finance";
 import { BottomNav } from "@/components/BottomNav";
 import {
   DEFAULT_EXPENSE_CATEGORY_ID,
@@ -12,46 +13,66 @@ import {
 import { useFinance } from "@/lib/finance-context";
 import { getCategoryMonthlyStats } from "@/lib/finance";
 import { formatRupiahAmount } from "@/lib/format";
-import { REFERENCE_DATE } from "@/lib/mock-data";
+
 import type { TransactionDirection } from "@/lib/types";
 
 export default function KategoriTransaksiPage() {
   const router = useRouter();
   const { data: session } = useSession();
-  const { transactions } = useFinance();
+  const { transactions, customCategories, addCustomCategory } = useFinance();
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const [activeTab, setActiveTab] = useState<TransactionDirection>("expense");
+  const [currentDate] = useState(() => new Date());
   const [searchQuery, setSearchQuery] = useState("");
   const [sortAsc, setSortAsc] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
+  const [subscriptionTier, setSubscriptionTier] = useState<string>("FREE");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [newCatName, setNewCatName] = useState("");
+  const [newCatType, setNewCatType] = useState<"expense"|"income">("expense");
+  const [newCatIcon, setNewCatIcon] = useState("star");
+  const [newCatColor, setNewCatColor] = useState({ bg: "bg-primary-fixed", text: "text-on-primary-fixed" });
+  const [isSaving, setIsSaving] = useState(false);
 
-  const expenseCount = getCategoriesForDirection("expense").length;
-  const incomeCount = getCategoriesForDirection("income").length;
+  useEffect(() => {
+    getUserProfileAction().then((data) => {
+      setSubscriptionTier(data.subscriptionTier);
+    }).catch(() => {});
+  }, []);
+
+  const expenseCount = getCategoriesForDirection("expense").length + customCategories.filter(c => c.type === "expense" || c.type === "both").length;
+  const incomeCount = getCategoriesForDirection("income").length + customCategories.filter(c => c.type === "income" || c.type === "both").length;
   const defaultCategoryId = activeTab === "expense" ? DEFAULT_EXPENSE_CATEGORY_ID : DEFAULT_INCOME_CATEGORY_ID;
 
+  const mergedCategories = useMemo(() => {
+    const base = getCategoriesForDirection(activeTab);
+    const custom = customCategories.filter(c => c.type === activeTab || c.type === "both");
+    return [...base, ...custom];
+  }, [activeTab, customCategories]);
+
   const monthlyStats = useMemo(
-    () => getCategoryMonthlyStats(transactions, activeTab, REFERENCE_DATE),
-    [transactions, activeTab]
+    () => getCategoryMonthlyStats(transactions, activeTab, currentDate),
+    [transactions, activeTab, currentDate]
   );
 
   const filteredCategories = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
-    const list = getCategoriesForDirection(activeTab).filter(
+    const list = mergedCategories.filter(
       (c) => query === "" || c.name.toLowerCase().includes(query) || c.fullName.toLowerCase().includes(query)
     );
     const sorted = [...list].sort((a, b) => a.name.localeCompare(b.name, "id-ID"));
     return sortAsc ? sorted : sorted.reverse();
-  }, [activeTab, searchQuery, sortAsc]);
+  }, [mergedCategories, searchQuery, sortAsc]);
 
   const topCategory = useMemo(() => {
     if (monthlyStats.length === 0) return null;
     const totalAmount = monthlyStats.reduce((sum, s) => sum + s.amount, 0);
     const top = monthlyStats.reduce((max, s) => (s.amount > max.amount ? s : max), monthlyStats[0]);
-    const category = getCategoriesForDirection(activeTab).find((c) => c.id === top.categoryId);
+    const category = mergedCategories.find((c) => c.id === top.categoryId);
     if (!category || totalAmount === 0) return null;
     return { fullName: category.fullName, percentage: Math.round((top.amount / totalAmount) * 100) };
-  }, [monthlyStats, activeTab]);
+  }, [monthlyStats, mergedCategories]);
 
   function showToast(message: string) {
     setToast(message);
@@ -62,7 +83,41 @@ export default function KategoriTransaksiPage() {
     router.push(`/transaksi?category=${categoryId}`);
   }
 
+  async function handleSaveCustomCategory() {
+    if (!newCatName.trim()) {
+      showToast("Nama kategori tidak boleh kosong");
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await addCustomCategory({
+        name: newCatName.trim(),
+        fullName: newCatName.trim(),
+        icon: newCatIcon,
+        bg: newCatColor.bg,
+        text: newCatColor.text,
+        type: newCatType
+      });
+      showToast("Kategori baru berhasil ditambahkan!");
+      setIsModalOpen(false);
+      setNewCatName("");
+    } catch (e) {
+      showToast("Gagal menyimpan kategori.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
   const directionNoun = activeTab === "expense" ? "pengeluaran" : "pemasukan";
+
+  const ICONS = ["star", "favorite", "shopping_cart", "pets", "flight", "fitness_center", "local_cafe", "school", "home", "car_repair"];
+  const COLORS = [
+    { bg: "bg-primary-fixed", text: "text-on-primary-fixed" },
+    { bg: "bg-secondary-fixed", text: "text-on-secondary-fixed" },
+    { bg: "bg-tertiary-fixed", text: "text-on-tertiary-fixed" },
+    { bg: "bg-error-container", text: "text-on-error-container" },
+    { bg: "bg-surface-variant", text: "text-on-surface-variant" },
+  ];
 
   return (
     <>
@@ -140,7 +195,7 @@ export default function KategoriTransaksiPage() {
                 }
               >
                 <span className="material-symbols-outlined text-[16px]">arrow_downward</span>
-                <span>Duit Keluar</span>
+                <span>Pengeluaran</span>
                 <span
                   className={
                     activeTab === "expense"
@@ -161,7 +216,7 @@ export default function KategoriTransaksiPage() {
                 }
               >
                 <span className="material-symbols-outlined text-[16px]">arrow_upward</span>
-                <span>Duit Masuk</span>
+                <span>Pemasukan</span>
                 <span
                   className={
                     activeTab === "income"
@@ -265,11 +320,10 @@ export default function KategoriTransaksiPage() {
             <button
               type="button"
               onClick={() => {
-                const tier = (session?.user as any)?.subscriptionTier || "FREE";
-                if (tier === "FREE") {
+                if (subscriptionTier === "FREE") {
                   showToast("🚀 Upgrade ke PRO untuk membuat Kategori Kustom!");
                 } else {
-                  showToast("Kategori kustom akan hadir di rilis mendatang");
+                  setIsModalOpen(true);
                 }
               }}
               className="w-full h-12 rounded-full bg-primary-container hover:bg-primary text-on-primary font-label-lg text-label-lg flex items-center justify-center gap-space-xs shadow-md active:scale-[0.99] transition-all"
@@ -296,6 +350,85 @@ export default function KategoriTransaksiPage() {
       </div>
 
       <BottomNav />
+
+      {/* POPUP MODAL KATEGORI KUSTOM */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-margin-screen">
+          <div className="bg-surface w-full max-w-sm rounded-[28px] p-space-lg shadow-2xl flex flex-col gap-space-md animate-in fade-in zoom-in-95 duration-200">
+            <h2 className="font-headline-sm text-headline-sm text-on-surface">Buat Kategori Baru</h2>
+            
+            <div className="flex flex-col gap-1">
+              <label className="font-label-md text-label-md text-on-surface-variant">Nama Kategori</label>
+              <input 
+                type="text" 
+                value={newCatName}
+                onChange={(e) => setNewCatName(e.target.value)}
+                placeholder="Misal: Nonton Konser"
+                className="w-full h-12 px-space-md bg-surface-container-lowest rounded-xl font-body-md text-body-md text-on-surface border border-outline-variant focus:outline-none focus:border-primary transition-colors"
+                maxLength={20}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="font-label-md text-label-md text-on-surface-variant">Tipe</label>
+              <div className="flex p-1 bg-surface-container rounded-full">
+                <button 
+                  onClick={() => setNewCatType("expense")}
+                  className={`flex-1 py-1.5 rounded-full font-label-md text-label-md ${newCatType === "expense" ? "bg-primary-container text-on-primary shadow-sm" : "text-on-surface-variant"}`}
+                >Pengeluaran</button>
+                <button 
+                  onClick={() => setNewCatType("income")}
+                  className={`flex-1 py-1.5 rounded-full font-label-md text-label-md ${newCatType === "income" ? "bg-primary-container text-on-primary shadow-sm" : "text-on-surface-variant"}`}
+                >Pemasukan</button>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="font-label-md text-label-md text-on-surface-variant">Pilih Ikon</label>
+              <div className="flex flex-wrap gap-2">
+                {ICONS.map(ic => (
+                  <button 
+                    key={ic} 
+                    onClick={() => setNewCatIcon(ic)}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${newCatIcon === ic ? "border-primary bg-primary/10 text-primary" : "border-transparent text-on-surface-variant hover:bg-surface-container"}`}
+                  >
+                    <span className="material-symbols-outlined text-[20px]">{ic}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <label className="font-label-md text-label-md text-on-surface-variant">Pilih Warna Dasar</label>
+              <div className="flex gap-2">
+                {COLORS.map((col, idx) => (
+                  <button 
+                    key={idx} 
+                    onClick={() => setNewCatColor(col)}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${newCatColor.bg === col.bg ? "border-on-surface" : "border-transparent"} ${col.bg} ${col.text}`}
+                  >
+                    {newCatColor.bg === col.bg && <span className="material-symbols-outlined text-[16px]">check</span>}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-space-sm mt-space-sm">
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                className="flex-1 h-12 rounded-full border border-outline text-on-surface font-label-lg text-label-lg hover:bg-surface-container-low transition-colors"
+              >Batal</button>
+              <button 
+                onClick={handleSaveCustomCategory}
+                disabled={isSaving || !newCatName.trim()}
+                className="flex-1 h-12 rounded-full bg-primary text-on-primary font-label-lg text-label-lg hover:bg-primary/90 disabled:opacity-50 transition-colors"
+              >
+                {isSaving ? "Menyimpan..." : "Simpan"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

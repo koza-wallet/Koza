@@ -117,6 +117,24 @@ export const CATEGORY_OPTIONS: CategoryOption[] = [
     appliesTo: ["income", "expense"],
   },
   {
+    id: "bayar_hutang",
+    name: "Bayar Hutang",
+    fullName: "Pembayaran Hutang",
+    icon: "account_balance",
+    bg: "bg-error-container",
+    text: "text-on-error-container",
+    appliesTo: [], // Hidden from manual selection
+  },
+  {
+    id: "terima_piutang",
+    name: "Terima Piutang",
+    fullName: "Penerimaan Piutang",
+    icon: "payments",
+    bg: "bg-primary-container",
+    text: "text-on-primary-container",
+    appliesTo: [], // Hidden from manual selection
+  },
+  {
     id: "lainnya",
     name: "Lainnya",
     fullName: "Lainnya",

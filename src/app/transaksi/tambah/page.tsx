@@ -18,7 +18,6 @@ import {
   formatTransactionDateLabel,
   toDateInputValue,
 } from "@/lib/format";
-import { REFERENCE_DATE } from "@/lib/mock-data";
 import type { TransactionDirection } from "@/lib/types";
 
 
@@ -35,12 +34,15 @@ function CatatTransaksiForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get("id");
-  const { wallets, transactions, addTransaction, updateTransaction } = useFinance();
-
-  const editingTransaction = editId ? transactions.find((t) => t.id === editId) : undefined;
-  const isEditing = Boolean(editId);
-
+  const { wallets, customCategories, transactions, addTransaction, updateTransaction, addDebt } = useFinance();
+  const editingTransaction = editId ? transactions.find(t => t.id === editId) : undefined;
+  const isEditing = !!editingTransaction;
+  
+  const [tab, setTab] = useState<"expense" | "income" | "debt">("expense");
   const [direction, setDirection] = useState<TransactionDirection>("expense");
+  const [debtType, setDebtType] = useState<"HUTANG" | "PIUTANG">("HUTANG");
+  const [contactName, setContactName] = useState("");
+  
   const [rawAmount, setRawAmount] = useState(0);
   const [amountError, setAmountError] = useState<string | null>(null);
   const amountInputRef = useRef<HTMLInputElement>(null);
@@ -52,7 +54,7 @@ function CatatTransaksiForm() {
   const [walletId, setWalletId] = useState("");
   // Derived: jika walletId kosong atau walletnya sudah dihapus, pakai default
   const resolvedWalletId = wallets.some((w) => w.id === walletId) ? walletId : defaultWalletId;
-  const [selectedDate, setSelectedDate] = useState(REFERENCE_DATE);
+  const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [note, setNote] = useState("");
   const [currencyCode, setCurrencyCode] = useState("IDR");
   const [exchangeRate, setExchangeRate] = useState(1.0);
@@ -67,7 +69,20 @@ function CatatTransaksiForm() {
   const [prefilledForId, setPrefilledForId] = useState<string | null>(null);
 
   const isExpense = direction === "expense";
-  const categoriesForDirection = getCategoriesForDirection(direction);
+  const applicableCategories = useMemo(() => {
+    const base = getCategoriesForDirection(tab === "income" ? "income" : "expense");
+    const custom = customCategories.filter(c => c.type === (tab === "income" ? "income" : "expense") || c.type === "both");
+    const all = [...base, ...custom];
+    
+    // Pastikan "Lainnya" selalu berada di akhir
+    const lainnyaIndex = all.findIndex(c => c.id === "lainnya");
+    if (lainnyaIndex !== -1) {
+      const lainnya = all.splice(lainnyaIndex, 1)[0];
+      all.push(lainnya);
+    }
+    
+    return all;
+  }, [tab, customCategories]);
 
   if (editingTransaction && prefilledForId !== editingTransaction.id) {
     setPrefilledForId(editingTransaction.id);
@@ -77,6 +92,17 @@ function CatatTransaksiForm() {
     setWalletId(editingTransaction.walletId ?? defaultWalletId);
     setSelectedDate(new Date(editingTransaction.timestamp));
     setNote(editingTransaction.note ?? "");
+  }
+
+  function handleTabChange(next: "expense" | "income" | "debt") {
+    setTab(next);
+    if (next === "expense" || next === "income") {
+      setDirection(next);
+      const stillApplies = getCategoriesForDirection(next).some((c) => c.id === categoryId);
+      if (!stillApplies) {
+        setCategoryId(next === "expense" ? DEFAULT_EXPENSE_CATEGORY_ID : DEFAULT_INCOME_CATEGORY_ID);
+      }
+    }
   }
 
   function handleDirectionChange(next: TransactionDirection) {
@@ -115,12 +141,14 @@ function CatatTransaksiForm() {
       setAmountError("Pilih dompet sumber terlebih dahulu");
       return;
     }
+    
+    if (tab === "debt" && !contactName.trim()) {
+      setAmountError("Nama kontak wajib diisi untuk pencatatan hutang/piutang baru");
+      return;
+    }
 
-    if (direction === "expense") {
+    if (tab === "expense" || (tab === "debt" && debtType === "PIUTANG")) {
       const selectedWallet = wallets.find((w) => w.id === resolvedWalletId);
-      // When editing an existing expense on the same wallet, its old amount
-      // will be reversed back into the balance before the new amount is
-      // applied — so it counts toward what's "available" for this edit.
       const restoredAmount =
         editingTransaction && editingTransaction.walletId === walletId && editingTransaction.direction === "expense"
           ? editingTransaction.amount
@@ -136,33 +164,57 @@ function CatatTransaksiForm() {
     }
 
     setStatus("saving");
-    window.setTimeout(() => {
-      const category = getCategoryById(categoryId);
-      const trimmedNote = note.trim();
-      const payload = {
-        title: trimmedNote || category.fullName,
-        categoryId: category.id,
-        category: category.fullName,
-        categoryIcon: category.icon,
-        direction,
-        amount: Math.round(rawAmount * exchangeRate),
-        walletId: resolvedWalletId,
-        note: trimmedNote || undefined,
-        timestamp: combineDateWithTimeOfDay(selectedDate, REFERENCE_DATE),
-        currencyCode,
-        exchangeRate
-      };
+    window.setTimeout(async () => {
+      try {
+        if (tab === "debt") {
+          const dt = combineDateWithTimeOfDay(selectedDate, new Date());
+          await addDebt({
+            type: debtType,
+            contactName: contactName.trim(),
+            amount: rawAmount,
+            walletId: resolvedWalletId,
+            date: dt,
+          });
+        } else {
+          let category = getCategoryById(categoryId);
+          // Fallback untuk kategori kustom jika tidak ketemu di base categories
+          if (category.id !== categoryId) {
+            const customMatch = customCategories.find(c => c.id === categoryId);
+            if (customMatch) {
+              category = customMatch as any;
+            }
+          }
 
-      if (editingTransaction) {
-        updateTransaction({ id: editingTransaction.id, ...payload });
-      } else {
-        addTransaction(payload);
+          const trimmedNote = note.trim();
+          const payload = {
+            title: trimmedNote || category.fullName,
+            categoryId: category.id,
+            category: category.fullName,
+            categoryIcon: category.icon,
+            direction,
+            amount: Math.round(rawAmount * exchangeRate),
+            walletId: resolvedWalletId,
+            note: trimmedNote || undefined,
+            timestamp: combineDateWithTimeOfDay(selectedDate, new Date()),
+            currencyCode,
+            exchangeRate
+          };
+
+          if (editingTransaction) {
+            updateTransaction({ id: editingTransaction.id, ...payload });
+          } else {
+            addTransaction(payload);
+          }
+        }
+
+        setStatus("success");
+        window.setTimeout(() => {
+          router.push(editingTransaction ? `/transaksi/${editingTransaction.id}` : "/");
+        }, 900);
+      } catch (error) {
+        setAmountError("Terjadi kesalahan saat menyimpan data.");
+        setStatus("idle");
       }
-
-      setStatus("success");
-      window.setTimeout(() => {
-        router.push(editingTransaction ? `/transaksi/${editingTransaction.id}` : "/");
-      }, 900);
     }, 500);
   }
 
@@ -190,32 +242,44 @@ function CatatTransaksiForm() {
 
       <main className="flex-1 flex flex-col relative w-full max-w-lg mx-auto pt-16 pb-28 bg-surface min-h-screen">
         <div className="flex flex-col w-full pb-safe">
-          {/* Segmented Tabs: Duit Keluar vs Duit Masuk */}
-          <div className="px-margin-screen pt-space-sm pb-space-xs">
-            <div className="p-space-xxs bg-surface-container rounded-full flex items-center shadow-inner">
+          {/* Segmented Tabs: Pengeluaran vs Pemasukan vs Hutang */}
+          <div className="px-margin-screen pt-space-sm pb-space-xs overflow-x-auto no-scrollbar">
+            <div className="min-w-fit p-space-xxs bg-surface-container rounded-full flex items-center shadow-inner gap-1">
               <button
                 type="button"
-                onClick={() => handleDirectionChange("expense")}
+                onClick={() => handleTabChange("expense")}
                 className={
-                  isExpense
-                    ? "flex-1 py-space-xs px-space-md rounded-full flex items-center justify-center gap-space-xs bg-tertiary text-on-tertiary shadow-sm transition-all duration-200"
-                    : "flex-1 py-space-xs px-space-md rounded-full flex items-center justify-center gap-space-xs text-on-surface-variant hover:text-on-surface transition-all duration-200"
+                  tab === "expense"
+                    ? "px-4 py-2 rounded-full flex items-center justify-center gap-space-xs bg-tertiary text-on-tertiary shadow-sm transition-all duration-200 shrink-0"
+                    : "px-4 py-2 rounded-full flex items-center justify-center gap-space-xs text-on-surface-variant hover:text-on-surface transition-all duration-200 shrink-0"
                 }
               >
-                <span className="material-symbols-outlined text-[18px]">arrow_downward</span>
-                <span className="font-label-lg text-label-lg">Duit Keluar</span>
+                <span className="material-symbols-outlined text-[16px]">arrow_downward</span>
+                <span className="font-label-lg text-label-lg">Pengeluaran</span>
               </button>
               <button
                 type="button"
-                onClick={() => handleDirectionChange("income")}
+                onClick={() => handleTabChange("income")}
                 className={
-                  !isExpense
-                    ? "flex-1 py-space-xs px-space-md rounded-full flex items-center justify-center gap-space-xs bg-primary-container text-on-primary shadow-sm transition-all duration-200"
-                    : "flex-1 py-space-xs px-space-md rounded-full flex items-center justify-center gap-space-xs text-on-surface-variant hover:text-on-surface transition-all duration-200"
+                  tab === "income"
+                    ? "px-4 py-2 rounded-full flex items-center justify-center gap-space-xs bg-primary-container text-on-primary shadow-sm transition-all duration-200 shrink-0"
+                    : "px-4 py-2 rounded-full flex items-center justify-center gap-space-xs text-on-surface-variant hover:text-on-surface transition-all duration-200 shrink-0"
                 }
               >
-                <span className="material-symbols-outlined text-[18px] text-primary">arrow_upward</span>
-                <span className="font-label-lg text-label-lg">Duit Masuk</span>
+                <span className="material-symbols-outlined text-[16px] text-primary">arrow_upward</span>
+                <span className="font-label-lg text-label-lg">Pemasukan</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTabChange("debt")}
+                className={
+                  tab === "debt"
+                    ? "px-4 py-2 rounded-full flex items-center justify-center gap-space-xs bg-secondary-container text-on-secondary-container shadow-sm transition-all duration-200 shrink-0"
+                    : "px-4 py-2 rounded-full flex items-center justify-center gap-space-xs text-on-surface-variant hover:text-on-surface transition-all duration-200 shrink-0"
+                }
+              >
+                <span className="material-symbols-outlined text-[16px] text-secondary">handshake</span>
+                <span className="font-label-lg text-label-lg">Hutang/Piutang</span>
               </button>
             </div>
           </div>
@@ -224,13 +288,15 @@ function CatatTransaksiForm() {
           <div className="px-margin-screen py-space-sm flex flex-col items-center justify-center">
             <span
               className={
-                isExpense
+                tab === "expense"
                   ? "font-label-md text-label-md uppercase tracking-wider text-tertiary bg-tertiary-fixed px-space-sm py-space-xxs rounded-full mb-space-xs flex items-center gap-1"
-                  : "font-label-md text-label-md uppercase tracking-wider text-primary bg-primary-fixed px-space-sm py-space-xxs rounded-full mb-space-xs flex items-center gap-1"
+                  : tab === "income" 
+                  ? "font-label-md text-label-md uppercase tracking-wider text-primary bg-primary-fixed px-space-sm py-space-xxs rounded-full mb-space-xs flex items-center gap-1"
+                  : "font-label-md text-label-md uppercase tracking-wider text-secondary bg-secondary-fixed px-space-sm py-space-xxs rounded-full mb-space-xs flex items-center gap-1"
               }
             >
-              <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${isExpense ? "bg-tertiary" : "bg-primary"}`} />
-              {isExpense ? "Nominal Pengeluaran" : "Nominal Pemasukan"}
+              <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${tab === "expense" ? "bg-tertiary" : tab === "income" ? "bg-primary" : "bg-secondary"}`} />
+              {tab === "expense" ? "Nominal Pengeluaran" : tab === "income" ? "Nominal Pemasukan" : "Nominal Hutang/Piutang"}
             </span>
 
             {/* Centered large responsive amount input */}
@@ -289,55 +355,114 @@ function CatatTransaksiForm() {
             ) : null}
           </div>
 
-          {/* Category Grid Section */}
-          <div className="px-margin-screen mt-space-xs">
-            <div className="flex items-center justify-between mb-space-xs">
-              <span className="font-label-lg text-label-lg text-on-surface">Pilih Kategori</span>
-              <span className="font-label-md text-label-md text-primary font-bold">
-                {categoriesForDirection.length} Kategori
-              </span>
-            </div>
-            <div className="grid grid-cols-4 gap-space-xs">
-              {categoriesForDirection.map((category) => {
-                const selected = category.id === categoryId;
-                return (
+          {/* Bagian Khusus Tab Hutang/Piutang */}
+          {tab === "debt" && (
+            <div className="px-margin-screen mt-space-md space-y-space-md">
+              <div className="bg-surface-container-lowest rounded-xl p-space-md shadow-sm border border-outline-variant/30 space-y-space-md">
+                
+                {/* Tipe Hutang vs Piutang */}
+                <div className="flex gap-2 p-1 bg-surface-container-low rounded-lg">
                   <button
-                    key={category.id}
                     type="button"
-                    onClick={() => setCategoryId(category.id)}
-                    className={`category-btn relative flex flex-col items-center justify-center p-space-xs rounded-2xl text-on-surface transition-all duration-150 active:scale-95 cursor-pointer border-2 ${
-                      selected
-                        ? "bg-primary/15 border-primary shadow-md"
-                        : "bg-surface-container-low border-transparent hover:bg-surface-container hover:border-outline-variant/50"
+                    onClick={() => setDebtType("HUTANG")}
+                    className={`flex-1 py-2 rounded-md font-label-md transition-colors ${
+                      debtType === "HUTANG" ? "bg-surface shadow-sm text-error font-bold" : "text-on-surface-variant hover:text-on-surface"
                     }`}
                   >
-                    {/* pointer-events-none pada semua elemen anak agar klik selalu naik ke button induk */}
-                    {selected && (
-                      <span className="pointer-events-none absolute top-1.5 right-1.5 w-4 h-4 bg-primary text-white rounded-full flex items-center justify-center shadow-sm">
-                        <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      </span>
-                    )}
-                    <div
-                      className={`pointer-events-none w-11 h-11 rounded-xl ${category.bg} ${category.text} flex items-center justify-center mb-space-xxs transition-transform ${
-                        selected ? "scale-105 shadow-md" : ""
-                      }${category.iconShadow ? " shadow-sm" : ""}`}
-                    >
-                      <span className="pointer-events-none material-symbols-outlined text-[22px]">{category.icon}</span>
-                    </div>
-                    <span
-                      className={`pointer-events-none font-label-md text-label-md text-center line-clamp-1 ${
-                        selected ? "text-primary font-bold" : ""
+                    Saya Berhutang (Kasbon)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDebtType("PIUTANG")}
+                    className={`flex-1 py-2 rounded-md font-label-md transition-colors ${
+                      debtType === "PIUTANG" ? "bg-surface shadow-sm text-secondary font-bold" : "text-on-surface-variant hover:text-on-surface"
+                    }`}
+                  >
+                    Memberi Hutang (Piutang)
+                  </button>
+                </div>
+
+                {/* Nama Kontak */}
+                <div className="mt-4">
+                  <label className="block font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-2">
+                    {debtType === "HUTANG" ? "Kepada Siapa Anda Berhutang?" : "Siapa yang Berhutang Kepada Anda?"}
+                  </label>
+                  <div className="relative flex items-center gap-space-xs p-space-sm rounded-lg bg-surface-container-low focus-within:ring-2 ring-primary transition-shadow">
+                    <span className="material-symbols-outlined text-outline text-[20px]">person</span>
+                    <input
+                      type="text"
+                      className="flex-1 bg-transparent font-body-lg text-body-lg text-on-surface placeholder:text-outline focus:outline-none"
+                      placeholder="Masukkan nama kontak..."
+                      value={contactName}
+                      onChange={(e) => setContactName(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {/* Info Otomatis Saldo */}
+                <div className="flex items-start gap-3 p-3 bg-secondary-container/20 text-on-surface rounded-lg mt-4">
+                  <span className="material-symbols-outlined text-secondary text-[20px] mt-0.5">info</span>
+                  <p className="font-body-sm text-body-sm text-on-surface-variant">
+                    {debtType === "HUTANG" ? "Uang pinjaman ini akan otomatis ditambahkan ke saldo dompet Anda." : 
+                     "Uang yang Anda pinjamkan akan memotong saldo dompet Anda."}
+                  </p>
+                </div>
+
+              </div>
+            </div>
+          )}
+
+          {/* Category Grid Section (Hanya untuk Expense/Income) */}
+          {tab !== "debt" && (
+            <div className="px-margin-screen mt-space-xs">
+              <div className="flex items-center justify-between mb-space-xs">
+                <span className="font-label-lg text-label-lg text-on-surface">Pilih Kategori</span>
+                <span className="font-label-md text-label-md text-primary font-bold">
+                  {applicableCategories.length} Kategori
+                </span>
+              </div>
+              <div className="grid grid-cols-4 gap-x-2 gap-y-4">
+                {applicableCategories.map((category) => {
+                  const selected = category.id === categoryId;
+                  return (
+                    <button
+                      key={category.id}
+                      type="button"
+                      onClick={() => setCategoryId(category.id)}
+                      className={`category-btn relative flex flex-col items-center justify-center p-space-xs rounded-2xl text-on-surface transition-all duration-150 active:scale-95 cursor-pointer border-2 ${
+                        selected
+                          ? "bg-primary/15 border-primary shadow-md"
+                          : "bg-surface-container-low border-transparent hover:bg-surface-container hover:border-outline-variant/50"
                       }`}
                     >
-                      {category.name}
-                    </span>
-                  </button>
-                );
-              })}
+                      {/* pointer-events-none pada semua elemen anak agar klik selalu naik ke button induk */}
+                      {selected && (
+                        <span className="pointer-events-none absolute top-1.5 right-1.5 w-4 h-4 bg-primary text-white rounded-full flex items-center justify-center shadow-sm">
+                          <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        </span>
+                      )}
+                      <div
+                        className={`pointer-events-none w-11 h-11 rounded-xl ${category.bg} ${category.text} flex items-center justify-center mb-space-xxs transition-transform ${
+                          selected ? "scale-105 shadow-md" : ""
+                        }${category.iconShadow ? " shadow-sm" : ""}`}
+                      >
+                        <span className="pointer-events-none material-symbols-outlined text-[22px]">{category.icon}</span>
+                      </div>
+                      <span
+                        className={`pointer-events-none font-label-md text-label-md text-center line-clamp-1 ${
+                          selected ? "text-primary font-bold" : ""
+                        }`}
+                      >
+                        {category.name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Transaction Details Card & Input Form */}
           <div className="px-margin-screen mt-space-md">
@@ -352,7 +477,7 @@ function CatatTransaksiForm() {
                     <div className="flex flex-col min-w-0">
                       <span className="font-label-caps text-label-caps text-outline uppercase">Tanggal Transaksi</span>
                       <span className="font-label-lg text-label-lg text-on-surface truncate">
-                        {formatTransactionDateLabel(selectedDate, REFERENCE_DATE)}
+                        {formatTransactionDateLabel(selectedDate, new Date())}
                       </span>
                     </div>
                   </div>

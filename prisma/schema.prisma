@@ -25,6 +25,7 @@ model User {
   pockets          Pocket[]
   memberships      WalletMember[]
   transactions     Transaction[]
+  debts            Debt[]
 }
 
 model Wallet {
@@ -82,6 +83,9 @@ model Transaction {
   
   categoryId    String // ID of category (either global or custom)
   
+  debtId        String?
+  debt          Debt?  @relation(fields: [debtId], references: [id], onDelete: SetNull)
+  
   userId        String // creator
   user          User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -96,4 +100,22 @@ model Pocket {
   userId         String
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt      DateTime @default(now())
+}
+
+model Debt {
+  id              String   @id @default(cuid())
+  type            String   // "HUTANG" or "PIUTANG"
+  contactName     String   // Nama teman/entitas
+  amount          Float    // Nominal pinjaman awal
+  remainingAmount Float    // Sisa yang harus dibayar
+  status          String   @default("UNPAID") // UNPAID, PARTIAL, PAID
+  dueDate         DateTime? 
+  
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  transactions    Transaction[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
