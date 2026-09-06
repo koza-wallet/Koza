@@ -110,7 +110,7 @@ export default function BerandaPage() {
                 {user?.image ? (
                   <img className="w-full h-full object-cover" alt="" src={user.image} />
                 ) : (
-                  (user?.name || mockUser.name).charAt(0).toUpperCase()
+                  user?.name ? user.name.charAt(0).toUpperCase() : (user?.email ? user.email.charAt(0).toUpperCase() : mockUser.name.charAt(0).toUpperCase())
                 )}
               </div>
               <div className="flex flex-col">
@@ -119,7 +119,7 @@ export default function BerandaPage() {
                   {formatFullDateId(currentDate)}
                 </span>
                 <h2 className="font-headline-md text-headline-md text-on-surface tracking-tight">
-                  Halo, {user?.name?.split(' ')[0] || mockUser.name}! 👋
+                  Halo, {user?.name ? user.name.split(' ')[0] : (user?.email ? user.email.split("@")[0] : mockUser.name)}! 👋
                 </h2>
               </div>
             </div>

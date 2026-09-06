@@ -23,6 +23,7 @@ export default function ProfilPage() {
   const [isReminderOn, setIsReminderOn] = useState(false);
   const [dbSubscriptionTier, setDbSubscriptionTier] = useState<string | null>(null);
   const [dbUserEmail, setDbUserEmail] = useState<string>("");
+  const [dbUserName, setDbUserName] = useState<string>("");
   const [isUploading, setIsUploading] = useState(false);
   const [isPaywallOpen, setIsPaywallOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -34,6 +35,7 @@ export default function ProfilPage() {
         setDbSubscriptionTier(data.subscriptionTier);
         setIsReminderOn(data.isReminderOn);
         if (data.email) setDbUserEmail(data.email);
+        if (data.name) setDbUserName(data.name);
       } else {
         setDbSubscriptionTier("FREE");
       }
@@ -51,7 +53,8 @@ export default function ProfilPage() {
     );
   }
 
-  const fullName = user?.name || mockUser.fullName;
+  // Use dbUserName if available, otherwise session user name, otherwise split email, otherwise mockUser
+  const fullName = dbUserName || user?.name || (user?.email ? user.email.split("@")[0] : mockUser.fullName);
   const initials = getInitials(fullName);
   const healthLabel = getHealthScoreLabel(mockUser.healthScore);
   const memberSinceLabel = formatMonthYearId(new Date(mockUser.memberSince));

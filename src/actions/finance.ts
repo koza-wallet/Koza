@@ -243,7 +243,8 @@ export async function getUserProfileAction() {
   return {
     subscriptionTier: tier,
     isReminderOn: user.isReminderOn,
-    email: user.email // return email for frontend dev menu check
+    email: user.email,
+    name: user.name || user.email.split("@")[0]
   };
 }
 
