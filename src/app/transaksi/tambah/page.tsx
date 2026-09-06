@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useMemo, useRef, useState } from "react";
 import {
   DEFAULT_EXPENSE_CATEGORY_ID,
   DEFAULT_INCOME_CATEGORY_ID,
@@ -13,17 +13,13 @@ import { getWalletDisplayLabel } from "@/lib/finance";
 import {
   combineDateWithTimeOfDay,
   formatRupiahAmount,
+  formatTerbilang,
   formatTransactionDateLabel,
   toDateInputValue,
 } from "@/lib/format";
 import { REFERENCE_DATE } from "@/lib/mock-data";
 import type { TransactionDirection } from "@/lib/types";
 
-const QUICK_AMOUNTS = [
-  { label: "+25rb", value: 25_000 },
-  { label: "+50rb", value: 50_000 },
-  { label: "+100rb", value: 100_000 },
-];
 
 /** `useSearchParams()` (for the `?id=` edit-mode param) requires a Suspense boundary in the App Router — this wrapper adds one without changing anything visual. */
 export default function CatatTransaksiPage() {
@@ -46,8 +42,15 @@ function CatatTransaksiForm() {
   const [direction, setDirection] = useState<TransactionDirection>("expense");
   const [rawAmount, setRawAmount] = useState(0);
   const [amountError, setAmountError] = useState<string | null>(null);
+  const amountInputRef = useRef<HTMLInputElement>(null);
   const [categoryId, setCategoryId] = useState(DEFAULT_EXPENSE_CATEGORY_ID);
-  const [walletId, setWalletId] = useState(wallets[0]?.id ?? "");
+  // walletId: inisialisasi dan jaga selalu valid —
+  // wallets bisa berubah setelah HYDRATE dari localStorage,
+  // sehingga kita pakai useMemo untuk mendapatkan fallback terkini.
+  const defaultWalletId = useMemo(() => wallets[0]?.id ?? "", [wallets]);
+  const [walletId, setWalletId] = useState("");
+  // Derived: jika walletId kosong atau walletnya sudah dihapus, pakai default
+  const resolvedWalletId = wallets.some((w) => w.id === walletId) ? walletId : defaultWalletId;
   const [selectedDate, setSelectedDate] = useState(REFERENCE_DATE);
   const [note, setNote] = useState("");
   const [status, setStatus] = useState<"idle" | "saving" | "success">("idle");
@@ -68,7 +71,7 @@ function CatatTransaksiForm() {
     setDirection(editingTransaction.direction);
     setRawAmount(editingTransaction.amount);
     setCategoryId(editingTransaction.categoryId);
-    setWalletId(editingTransaction.walletId ?? wallets[0]?.id ?? "");
+    setWalletId(editingTransaction.walletId ?? defaultWalletId);
     setSelectedDate(new Date(editingTransaction.timestamp));
     setNote(editingTransaction.note ?? "");
   }
@@ -83,39 +86,35 @@ function CatatTransaksiForm() {
     }
   }
 
-  function addAmount(value: number) {
-    setRawAmount((v) => v + value);
-    setAmountError(null);
-  }
-
-  function resetAmount() {
-    setRawAmount(0);
-  }
-
-  function focusAmount() {
-    // Ported from the Stitch export's own focusAmount(): a native prompt for
-    // manual entry, not a custom-styled input the design never specified.
-    const input = window.prompt("Masukkan jumlah nominal (Rp):", rawAmount ? String(rawAmount) : "");
-    if (input === null) return;
-    const parsed = parseInt(input.replace(/[^0-9]/g, ""), 10);
-    if (!isNaN(parsed)) {
+  function handleAmountChange(e: React.ChangeEvent<HTMLInputElement>) {
+    // Strip semua non-digit (termasuk titik separator ribuan yang diformat oleh formatRupiahAmount)
+    const digitsOnly = e.target.value.replace(/\D/g, "");
+    if (!digitsOnly) {
+      setRawAmount(0);
+      setAmountError(null);
+      return;
+    }
+    const parsed = parseInt(digitsOnly, 10);
+    // Guard overflow
+    if (!isNaN(parsed) && parsed <= 999_999_999_999) {
       setRawAmount(parsed);
       setAmountError(null);
     }
   }
+
 
   function handleSave() {
     if (!Number.isFinite(rawAmount) || rawAmount <= 0) {
       setAmountError("Nominal transaksi belum diisi");
       return;
     }
-    if (!walletId) {
+    if (!resolvedWalletId) {
       setAmountError("Pilih dompet sumber terlebih dahulu");
       return;
     }
 
     if (direction === "expense") {
-      const selectedWallet = wallets.find((w) => w.id === walletId);
+      const selectedWallet = wallets.find((w) => w.id === resolvedWalletId);
       // When editing an existing expense on the same wallet, its old amount
       // will be reversed back into the balance before the new amount is
       // applied — so it counts toward what's "available" for this edit.
@@ -144,7 +143,7 @@ function CatatTransaksiForm() {
         categoryIcon: category.icon,
         direction,
         amount: rawAmount,
-        walletId,
+        walletId: resolvedWalletId,
         note: trimmedNote || undefined,
         timestamp: combineDateWithTimeOfDay(selectedDate, REFERENCE_DATE),
       };
@@ -164,8 +163,8 @@ function CatatTransaksiForm() {
 
   return (
     <>
-      <header className="fixed top-0 w-full z-50 pt-safe bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
-        <div className="h-16 px-margin-screen flex items-center justify-between">
+      <header className="fixed top-0 left-0 right-0 z-50 pt-safe bg-surface/85 backdrop-blur-xl border-b border-outline-variant/10 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
+        <div className="max-w-lg mx-auto h-16 px-margin-screen flex items-center justify-between">
           <div className="flex items-center gap-space-xs">
             <button
               aria-label="Kembali"
@@ -184,7 +183,7 @@ function CatatTransaksiForm() {
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col relative w-full pt-16 bg-surface">
+      <main className="flex-1 flex flex-col relative w-full max-w-lg mx-auto pt-16 pb-28 bg-surface min-h-screen">
         <div className="flex flex-col w-full pb-safe">
           {/* Segmented Tabs: Duit Keluar vs Duit Masuk */}
           <div className="px-margin-screen pt-space-sm pb-space-xs">
@@ -217,7 +216,7 @@ function CatatTransaksiForm() {
           </div>
 
           {/* Hero Amount Display with Interactive Numerical State */}
-          <div className="px-margin-screen py-space-md flex flex-col items-center justify-center">
+          <div className="px-margin-screen py-space-sm flex flex-col items-center justify-center">
             <span
               className={
                 isExpense
@@ -228,43 +227,47 @@ function CatatTransaksiForm() {
               <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${isExpense ? "bg-tertiary" : "bg-primary"}`} />
               {isExpense ? "Nominal Pengeluaran" : "Nominal Pemasukan"}
             </span>
+
+            {/* Centered large responsive amount input */}
             <div
-              className="flex items-baseline justify-center gap-space-xs cursor-text select-none group"
-              onClick={focusAmount}
+              className="w-full flex items-center justify-center gap-2 cursor-text group my-1"
+              onClick={() => amountInputRef.current?.focus()}
             >
-              <span className="font-headline-md text-headline-md text-outline font-bold">Rp</span>
-              <span className="font-display-currency text-display-currency text-on-background tracking-tight">
-                {formatRupiahAmount(rawAmount)}
+              <span className="font-headline-md sm:font-headline-lg text-outline font-bold select-none shrink-0">
+                Rp
               </span>
-              <span className="w-0.5 h-8 bg-primary rounded-full animate-pulse ml-0.5" />
+              <input
+                ref={amountInputRef}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                autoComplete="off"
+                aria-label="Nominal transaksi"
+                placeholder="0"
+                value={rawAmount > 0 ? formatRupiahAmount(rawAmount) : ""}
+                onChange={handleAmountChange}
+                onFocus={(e) => {
+                  // Saat fokus, pilih semua teks agar mudah diganti langsung
+                  e.target.select();
+                }}
+                className="w-auto min-w-[120px] max-w-[75vw] text-center font-display-currency text-[36px] sm:text-[44px] font-extrabold text-on-background tracking-tight bg-transparent focus:outline-none border-b-2 border-primary/30 focus:border-primary transition-all py-0.5 placeholder:text-outline/30"
+              />
             </div>
+
+            {/* Terbilang label (confirms amount in Indonesian words) */}
+            {rawAmount > 0 && (
+              <p className="font-label-md text-label-md text-primary font-semibold text-center mt-1 px-4 line-clamp-2">
+                {formatTerbilang(rawAmount)}
+              </p>
+            )}
+
             {amountError ? (
               <span className="font-body-sm text-body-sm text-tertiary mt-space-xxs">{amountError}</span>
-            ) : (
+            ) : !rawAmount ? (
               <span className="font-body-sm text-body-sm text-outline mt-space-xxs">
-                Ketik jumlah transaksi atau pilih preset
+                Ketuk area angka lalu ketik jumlah nominal
               </span>
-            )}
-            {/* Quick Amount Chips */}
-            <div className="flex items-center gap-space-xs mt-space-sm overflow-x-auto w-full justify-center">
-              {QUICK_AMOUNTS.map((preset) => (
-                <button
-                  key={preset.value}
-                  type="button"
-                  onClick={() => addAmount(preset.value)}
-                  className="px-space-sm py-space-xxs bg-surface-container-low hover:bg-surface-container-high rounded-full font-label-md text-label-md text-on-surface-variant transition-colors shadow-sm"
-                >
-                  {preset.label}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={resetAmount}
-                className="px-space-sm py-space-xxs bg-error-container hover:bg-error text-on-error-container hover:text-on-error rounded-full font-label-md text-label-md transition-colors flex items-center gap-1 shadow-sm"
-              >
-                <span className="material-symbols-outlined text-[14px]">backspace</span> Reset
-              </button>
-            </div>
+            ) : null}
           </div>
 
           {/* Category Grid Section */}
@@ -283,18 +286,34 @@ function CatatTransaksiForm() {
                     key={category.id}
                     type="button"
                     onClick={() => setCategoryId(category.id)}
-                    className={`category-btn flex flex-col items-center justify-center p-space-xs rounded-xl text-on-surface transition-all duration-200 ${
-                      selected ? "bg-surface-container-high shadow-sm" : "bg-surface-container-low hover:bg-surface-container"
+                    className={`category-btn relative flex flex-col items-center justify-center p-space-xs rounded-2xl text-on-surface transition-all duration-150 active:scale-95 cursor-pointer border-2 ${
+                      selected
+                        ? "bg-primary/15 border-primary shadow-md"
+                        : "bg-surface-container-low border-transparent hover:bg-surface-container hover:border-outline-variant/50"
                     }`}
                   >
+                    {/* pointer-events-none pada semua elemen anak agar klik selalu naik ke button induk */}
+                    {selected && (
+                      <span className="pointer-events-none absolute top-1.5 right-1.5 w-4 h-4 bg-primary text-white rounded-full flex items-center justify-center shadow-sm">
+                        <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </span>
+                    )}
                     <div
-                      className={`w-11 h-11 rounded-xl ${category.bg} ${category.text} flex items-center justify-center mb-space-xxs${
-                        category.iconShadow ? " shadow-sm" : ""
+                      className={`pointer-events-none w-11 h-11 rounded-xl ${category.bg} ${category.text} flex items-center justify-center mb-space-xxs transition-transform ${
+                        selected ? "scale-105 shadow-md" : ""
+                      }${category.iconShadow ? " shadow-sm" : ""}`}
+                    >
+                      <span className="pointer-events-none material-symbols-outlined text-[22px]">{category.icon}</span>
+                    </div>
+                    <span
+                      className={`pointer-events-none font-label-md text-label-md text-center line-clamp-1 ${
+                        selected ? "text-primary font-bold" : ""
                       }`}
                     >
-                      <span className="material-symbols-outlined text-[22px]">{category.icon}</span>
-                    </div>
-                    <span className="font-label-md text-label-md text-center line-clamp-1">{category.name}</span>
+                      {category.name}
+                    </span>
                   </button>
                 );
               })}
@@ -340,8 +359,8 @@ function CatatTransaksiForm() {
                     <div className="flex flex-col min-w-0">
                       <span className="font-label-caps text-label-caps text-outline uppercase">Sumber Rekening</span>
                       <span className="font-label-lg text-label-lg text-on-surface truncate">
-                        {wallets.find((w) => w.id === walletId)
-                          ? getWalletDisplayLabel(wallets.find((w) => w.id === walletId)!)
+                        {wallets.find((w) => w.id === resolvedWalletId)
+                          ? getWalletDisplayLabel(wallets.find((w) => w.id === resolvedWalletId)!)
                           : "Pilih dompet"}
                       </span>
                     </div>
@@ -350,7 +369,7 @@ function CatatTransaksiForm() {
                 </div>
                 <select
                   aria-label="Pilih dompet sumber"
-                  value={walletId}
+                  value={resolvedWalletId}
                   onChange={(e) => setWalletId(e.target.value)}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 >
@@ -398,33 +417,35 @@ function CatatTransaksiForm() {
             </div>
           </div>
 
-          {/* Bottom Prominent Floating Action Button */}
-          <div className="px-margin-screen pt-space-xs pb-space-lg mt-auto">
-            <button
-              type="button"
-              disabled={status !== "idle"}
-              onClick={handleSave}
-              className="w-full h-[52px] bg-primary-container hover:bg-primary text-on-primary rounded-[16px] flex items-center justify-center gap-space-xs font-label-lg text-label-lg shadow-md hover:shadow-lg active:scale-[0.99] transition-all disabled:opacity-80 disabled:pointer-events-none"
-            >
-              {status === "idle" && (
-                <>
-                  <span className="material-symbols-outlined text-[22px]">check_circle</span>
-                  <span>{isEditing ? "Simpan Perubahan" : "Simpan Transaksi"}</span>
-                </>
-              )}
-              {status === "saving" && (
-                <>
-                  <span className="material-symbols-outlined animate-spin text-[22px]">sync</span>
-                  <span>Menyimpan...</span>
-                </>
-              )}
-              {status === "success" && (
-                <>
-                  <span className="material-symbols-outlined text-[22px]">done_all</span>
-                  <span>Tersimpan Rapi!</span>
-                </>
-              )}
-            </button>
+          {/* Sticky Bottom Floating Action Button (Always visible on mobile & web) */}
+          <div className="fixed bottom-0 left-0 right-0 z-40 bg-surface/90 backdrop-blur-xl border-t border-outline-variant/15 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
+            <div className="max-w-lg mx-auto px-margin-screen py-3 pb-safe">
+              <button
+                type="button"
+                disabled={status !== "idle"}
+                onClick={handleSave}
+                className="w-full h-[52px] bg-primary hover:bg-primary-container text-on-primary rounded-2xl flex items-center justify-center gap-space-xs font-label-lg text-label-lg shadow-md hover:shadow-lg active:scale-[0.99] transition-all disabled:opacity-80 disabled:pointer-events-none cursor-pointer"
+              >
+                {status === "idle" && (
+                  <>
+                    <span className="material-symbols-outlined text-[22px]">check_circle</span>
+                    <span>{isEditing ? "Simpan Perubahan" : "Simpan Transaksi"}</span>
+                  </>
+                )}
+                {status === "saving" && (
+                  <>
+                    <span className="material-symbols-outlined animate-spin text-[22px]">sync</span>
+                    <span>Menyimpan...</span>
+                  </>
+                )}
+                {status === "success" && (
+                  <>
+                    <span className="material-symbols-outlined text-[22px]">done_all</span>
+                    <span>Tersimpan Rapi!</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </main>

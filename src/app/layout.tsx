@@ -6,6 +6,12 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "KoZa",
   description: "Mencatat Rapi, Kocek Terjaga",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "KoZa",
+  },
 };
 
 export const viewport: Viewport = {
@@ -14,6 +20,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
+  themeColor: "#10b981",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

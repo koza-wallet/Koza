@@ -151,3 +151,39 @@ export function combineDateWithTimeOfDay(dateOnly: Date, timeSource: Date): stri
   );
   return combined.toISOString();
 }
+
+/** Spells out an Indonesian number into words, e.g. 50_000 -> "Lima Puluh Ribu Rupiah". */
+export function formatTerbilang(amount: number): string {
+  const abs = Math.abs(Math.floor(amount));
+  if (abs === 0) return "";
+  const satuan = [
+    "",
+    "Satu",
+    "Dua",
+    "Tiga",
+    "Empat",
+    "Lima",
+    "Enam",
+    "Tujuh",
+    "Delapan",
+    "Sembilan",
+    "Sepuluh",
+    "Sebelas",
+  ];
+  function konversi(n: number): string {
+    if (n < 12) return satuan[n];
+    if (n < 20) return `${konversi(n - 10)} Belas`;
+    if (n < 100) return `${satuan[Math.floor(n / 10)]} Puluh ${konversi(n % 10)}`.trim();
+    if (n < 200) return `Seratus ${konversi(n - 100)}`.trim();
+    if (n < 1000) return `${satuan[Math.floor(n / 100)]} Ratus ${konversi(n % 100)}`.trim();
+    if (n < 2000) return `Seribu ${konversi(n - 1000)}`.trim();
+    if (n < 1_000_000) return `${konversi(Math.floor(n / 1000))} Ribu ${konversi(n % 1000)}`.trim();
+    if (n < 1_000_000_000)
+      return `${konversi(Math.floor(n / 1_000_000))} Juta ${konversi(n % 1_000_000)}`.trim();
+    if (n < 1_000_000_000_000)
+      return `${konversi(Math.floor(n / 1_000_000_000))} Miliar ${konversi(n % 1_000_000_000)}`.trim();
+    return `${konversi(Math.floor(n / 1_000_000_000_000))} Triliun ${konversi(n % 1_000_000_000_000)}`.trim();
+  }
+  const hasil = konversi(abs);
+  return hasil ? `${hasil} Rupiah` : "";
+}

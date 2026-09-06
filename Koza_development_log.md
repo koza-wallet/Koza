@@ -187,3 +187,163 @@ Tombol/link dekoratif yang TIDAK disebut eksplisit di instruksi sesi ini dibiark
 - [ ] (Opsional, tidak diminta eksplisit) Pertimbangkan apakah tombol dekoratif di §11.5 perlu difungsikan di masa depan, atau tetap dekoratif selamanya sebagai keputusan produk sadar
 
 **Cara melanjutkan sesi berikutnya:** baca §11 untuk konteks lengkap pekerjaan sesi ini (terutama §11.1 soal kenapa `kategori_dark.html` diabaikan, dan §11.3 soal logika `availableBalance` saat edit), baca §12.1 untuk apa yang sudah/belum diverifikasi manual, lalu lanjut ke item checklist di atas sesuai prioritas.
+
+## 13. Perbaikan Bug UX Mobile, Input Nominal, & Audit Logic Menyeluruh (6 September 2026)
+
+### 13.1 Latar Belakang
+
+Sesi ini dimulai dari laporan langsung pengguna saat live test di HP: (1) input nominal di `/transaksi/tambah` tidak bisa diketik, (2) pilihan kategori tidak merespons sentuhan, (3) tampilan nominal terpotong (`50000` muncul sebagai `50`). Seluruh sesi berfokus pada debugging interaktivitas mobile, perbaikan UX input, dan audit logic menyeluruh seluruh codebase.
+
+### 13.2 Perbaikan Input Nominal — Format Separator Ribuan
+
+**Akar masalah:** `formatRupiahAmount` menggunakan `Intl.NumberFormat("id-ID")` yang menghasilkan titik sebagai separator ribuan (e.g. `50.000`). Saat nilai yang sudah diformat dikembalikan ke `value` input dan pengguna mengetik karakter baru, ada edge case di mana `parseInt` menerima string yang belum sempurna distrip.
+
+**Perbaikan di `src/app/transaksi/tambah/page.tsx`:**
+- `handleAmountChange`: ditambah guard `!isNaN(parsed)` sebelum `setRawAmount`.
+- Input mendapat `autoComplete="off"` untuk mencegah browser mobile menyuntikkan karakter non-digit.
+- Tambah `onFocus={(e) => e.target.select()}` — saat input difokus, seluruh teks terpilih otomatis sehingga pengguna bisa langsung mengetik angka baru.
+
+**Konsistensi format di seluruh app:** `formatRupiahAmount()` (`Intl.NumberFormat("id-ID")`) dipakai konsisten di Dashboard, Riwayat, Detail Transaksi, Laporan, Form Catat Transaksi, dan Kelola Dompet — menghasilkan format titik ribuan yang seragam (e.g. `50.000`, `1.360.000`).
+
+### 13.3 Perbaikan Interaksi Kategori — `pointer-events-none`
+
+**Masalah:** kartu/tombol kategori tidak merespons sentuhan di Android.
+
+**Akar masalah:** di beberapa Android, event sentuhan pada `<button>` bisa "diserap" oleh elemen anak yang tidak memiliki `pointer-events: none` — terutama `<span>` ikon Material Symbols yang menerima pointer event sendiri, memblokir propagasi ke `<button>` induk.
+
+**Perbaikan:** semua elemen anak dalam kartu kategori (`div` ikon, `span` ikon font, `span` nama, `span` checkmark SVG) diberi kelas `pointer-events-none`. Indikator seleksi diperkuat: `border` (1px) → `border-2`, `bg-primary/10` → `bg-primary/15`.
+
+### 13.4 Penghapusan Tombol Bantuan Nominal
+
+**Permintaan pengguna:** hapus tombol bantuan (+10rb, +20rb, +50rb, +100rb, +000, Reset) dari form Catat Transaksi.
+
+**Yang dihapus dari `src/app/transaksi/tambah/page.tsx`:**
+- Konstanta `QUICK_AMOUNTS`
+- Fungsi `addAmount()`, `appendZeros()`, `resetAmount()` (dead code)
+- Seluruh blok JSX "Quick Amount Chips & Tools" + tombol "Smart helper"
+- Teks hint diperbarui: _"Ketuk area angka lalu ketik jumlah nominal"_
+
+### 13.5 Perbaikan Bug Arah Panah — Detail Transaksi
+
+**Bug di `src/app/transaksi/[id]/page.tsx`:** logika ikon panah terbalik.
+
+```diff
+- {isIncome ? "arrow_downward" : "arrow_upward"}
++ {isIncome ? "arrow_upward" : "arrow_downward"}
+```
+
+Pemasukan = panah naik (↑), pengeluaran = panah turun (↓).
+
+### 13.6 Perbaikan Nama Produk — Halaman Profil
+
+Teks stale di `src/app/profil/page.tsx` diperbaiki:
+
+```diff
+- Kelola preferensi dan akun Dompetku Anda
++ Kelola preferensi dan akun KoZa Anda
+```
+
+### 13.7 Konfigurasi `allowedDevOrigins` untuk Live Test di HP
+
+Next.js dev server memblokir HMR dari IP lokal HP (`10.166.152.36`). Ditambahkan di `next.config.ts`:
+
+```ts
+allowedDevOrigins: ["10.166.152.36", "localhost"],
+```
+
+Dev server di-restart. HP kini menerima Fast Refresh tanpa blokir.
+
+### 13.8 Audit Logic Menyeluruh — Temuan & Perbaikan
+
+Dilakukan audit terhadap seluruh codebase: `types.ts`, `finance-context.tsx`, `finance.ts`, `report.ts`, `format.ts`, `categories.ts`, `csv-export.ts`, dan semua halaman.
+
+#### Bug nyata yang ditemukan dan diperbaiki:
+
+| # | File | Bug | Perbaikan |
+|---|---|---|---|
+| 1 | `tambah/page.tsx` | `walletId` diinisialisasi sekali dari `wallets[0]?.id` saat mount — tapi `wallets` bisa berubah setelah HYDRATE dari localStorage, berpotensi mengirim `walletId` yang tidak valid | Diubah ke `useState("")` + `resolvedWalletId` (derived: cek apakah walletId masih ada di `wallets` aktual) + `defaultWalletId` dari `useMemo([wallets])` |
+| 2 | `tambah/page.tsx` | Fungsi `resetAmount()` masih ada sebagai dead code setelah tombol Reset dihapus | Dihapus sepenuhnya |
+| 3 | `transaksi/page.tsx` | Warna indikator net header grup: `net >= 0` (termasuk `0`) semua berwarna hijau primary | Diubah ke logika tiga-kondisi: `net > 0` = primary (hijau), `net < 0` = tertiary (merah), `net = 0` = outline (abu/netral) |
+| 4 | `dompet/page.tsx` | Warna `monthly.net >= 0` di footer kartu dompet — masalah sama dengan poin 3 | Logika tiga-kondisi yang sama |
+| 5 | `dompet/page.tsx` | Input saldo awal menggunakan `type="number"` — tidak konsisten, rentan scroll tidak sengaja di mobile, tidak ada guard overflow, bisa menerima desimal | Diganti ke `type="text" inputMode="numeric"` + format separator titik otomatis, `onFocus` select-all, guard `parseInt` + `Math.min(999_999_999_999, ...)` |
+
+#### Logic yang sudah benar (tidak perlu diubah):
+
+- `finance-context.tsx` — Balance reversal dua langkah di UPDATE/DELETE_TRANSACTION ✅
+- `finance-context.tsx` — Guard HYDRATE vs persist (skipNextPersistRef) ✅
+- `finance-context.tsx` — DELETE_WALLET guard jika masih ada histori ✅
+- `report.ts` — `startOfWeek`, `getRange`, `sumInRange`, `pctChange` ✅
+- `finance.ts` — `groupTransactionsByDay`, `getMonthlySummary`, `getWalletMonthlyNet` ✅
+- `csv-export.ts` — Filter range, UTF-8 BOM ✅
+- `tambah/page.tsx` — Validasi saldo cukup sebelum simpan ✅
+- `tambah/page.tsx` — Edit mode: restore saldo lama sebelum kalkulasi delta baru ✅
+
+### 13.9 Verifikasi
+
+`npx tsc --noEmit` → **0 error**. `npx eslint` pada semua file yang diubah → **0 error**.
+
+Dev server berjalan di `http://localhost:3000` (juga `http://10.166.152.36:3000` dari HP di jaringan yang sama).
+
+### 13.10 Status Checklist (diperbarui dari §12)
+
+- [x] Bug panah arah terbalik di Detail Transaksi — diperbaiki §13.5
+- [x] Interaksi kategori tidak merespons di HP — diperbaiki §13.3
+- [x] Input nominal terpotong / tidak bisa diketik — diperbaiki §13.2
+- [x] Nama produk "Dompetku" masih tersisa di Profil — diperbaiki §13.6
+- [x] `allowedDevOrigins` untuk HMR di HP — dikonfigurasi §13.7
+- [x] Audit logic menyeluruh seluruh codebase — selesai §13.8
+- [ ] Unit test otomatis untuk fungsi murni (`finance.ts`, `report.ts`, `format.ts`)
+- [ ] PWA readiness — manifest.json, service worker, ikon app kustom
+- [ ] Backend + autentikasi nyata (di luar localStorage satu-browser)
+- [ ] Security headers sebelum deploy publik
+
+## 14. Implementasi Unit Test & PWA (6 September 2026)
+
+### 14.1 Latar Belakang
+
+Melanjutkan dari sesi sebelumnya, pengguna meminta untuk mengerjakan checklist prioritas:
+1. Unit Test otomatis untuk fungsi murni (`finance.ts`, `report.ts`, `format.ts`).
+2. PWA readiness (Progressive Web App) agar KoZa bisa dipasang di *homescreen* dan bekerja secara offline/caching.
+
+### 14.2 Unit Test dengan Vitest
+
+**Alat yang digunakan:** `vitest`
+**File yang diuji:**
+- `format.test.ts`: Menguji `formatRupiahAmount`, `formatCompactRupiah`, dan `formatTerbilang`. 
+  - *Perbaikan Bug:* Memperbaiki ekspektasi test karena `formatCompactRupiah` adalah fungsi yang benar untuk singkatan (bukan `formatSignedRupiahCompact` yang tidak menyingkat angka).
+- `finance.test.ts`: Menguji fungsi agregasi keuangan murni seperti `getTotalBalance`, `isSameMonth`, `getMonthlySummary`, dan `groupTransactionsByDay`.
+- `report.test.ts`: Menguji `shiftAnchor` dan fungsi pembuatan laporan bulanan `getPeriodReport`.
+
+**Hasil:**
+- Seluruh tes lulus (9/9 pass).
+
+### 14.3 Setup PWA dengan Serwist
+
+**Alat yang digunakan:** `@serwist/next` (penerus modern `next-pwa`)
+**Langkah Implementasi:**
+1. **Manifest & Ikon:** 
+   - Membuat gambar logo kustom "Dompet Minimalis" menggunakan image generator (AI) untuk `icon-192x192.png` dan `icon-512x512.png`.
+   - Menambahkan `public/manifest.json`.
+2. **Metadata Layout:**
+   - Menyuntikkan `manifest` dan `appleWebApp` configuration ke dalam export `metadata` Next.js di `src/app/layout.tsx`.
+   - Menambahkan `themeColor: "#10b981"` ke export `viewport`.
+3. **Service Worker:**
+   - Membuat `src/app/sw.ts` dengan konfigurasi *default cache* dari `serwist`.
+4. **Konfigurasi Next.js:**
+   - Memodifikasi `next.config.ts` untuk menggunakan *wrapper* `withSerwistInit`.
+   - Memodifikasi script `dev` di `package.json` menjadi `next dev --webpack` karena Serwist membutuhkan Webpack (Next.js 16 menggunakan Turbopack secara default).
+
+### 14.4 Status Checklist (diperbarui dari §13)
+
+- [x] Unit test otomatis untuk fungsi murni (`finance.ts`, `report.ts`, `format.ts`) — **selesai §14.2**
+- [x] PWA readiness — manifest.json, service worker, ikon app kustom — **selesai §14.3**
+- [ ] Backend + autentikasi nyata (di luar localStorage satu-browser)
+- [x] Security headers sebelum deploy publik — **selesai §14.5**
+
+### 14.5 Implementasi Security Headers
+
+**Langkah Implementasi:**
+1. Menambahkan `securityHeaders` pada `next.config.ts`.
+2. Headers yang ditambahkan meliputi `X-DNS-Prefetch-Control`, `Strict-Transport-Security`, `X-XSS-Protection`, `X-Frame-Options`, `X-Content-Type-Options`, dan `Referrer-Policy`.
+3. Memperbaiki error TypeScript pada `src/app/sw.ts` dengan menambahkan `/// <reference lib="webworker" />`.
+4. Menambahkan `--webpack` pada `next build` agar serwist berfungsi di Next.js 16 yang default-nya menggunakan Turbopack.

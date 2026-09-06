@@ -170,7 +170,7 @@ function DetailTransaksiContent({
             <span className="material-symbols-outlined text-[32px]">{transaction.categoryIcon}</span>
             <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-surface-container-lowest border border-surface-container flex items-center justify-center">
               <span className={`material-symbols-outlined text-[12px] font-bold ${amountColor}`}>
-                {isIncome ? "arrow_downward" : "arrow_upward"}
+                {isIncome ? "arrow_upward" : "arrow_downward"}
               </span>
             </span>
           </div>

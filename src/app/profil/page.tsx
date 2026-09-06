@@ -56,7 +56,7 @@ export default function ProfilPage() {
             <div>
               <h2 className="font-headline-sm text-headline-sm text-on-surface">Profil &amp; Pengaturan</h2>
               <p className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">
-                Kelola preferensi dan akun Dompetku Anda
+                Kelola preferensi dan akun KoZa Anda
               </p>
             </div>
             <button

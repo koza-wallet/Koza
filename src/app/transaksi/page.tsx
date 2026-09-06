@@ -201,7 +201,7 @@ function RiwayatTransaksiContent() {
                       </span>
                       <span
                         className={`font-label-caps text-label-caps ${
-                          group.net >= 0 ? "text-primary" : "text-outline"
+                          group.net > 0 ? "text-primary" : group.net < 0 ? "text-tertiary" : "text-outline"
                         }`}
                       >
                         {formatSignedRupiahCompact(group.net)}

@@ -289,7 +289,7 @@ export default function KelolaDompetPage() {
                   <div className="mt-space-sm pt-space-xs flex items-center justify-between text-on-surface-variant">
                     <span className="font-body-sm text-body-sm">Transaksi bulan ini</span>
                     <span
-                      className={`font-label-md text-label-md ${monthly.net >= 0 ? "text-primary" : "text-tertiary"}`}
+                      className={`font-label-md text-label-md ${monthly.net > 0 ? "text-primary" : monthly.net < 0 ? "text-tertiary" : "text-outline"}`}
                     >
                       {monthly.count > 0 ? `${formatSignedRupiahCompact(monthly.net)} (${monthly.count})` : "Belum ada"}
                     </span>
@@ -415,14 +415,22 @@ export default function KelolaDompetPage() {
                   <div className="w-9 h-9 rounded-lg bg-surface-variant text-on-surface-variant flex items-center justify-center shrink-0">
                     <span className="material-symbols-outlined text-[20px]">account_balance_wallet</span>
                   </div>
-                  <input
-                    className="flex-1 bg-transparent font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none"
-                    placeholder="Saldo awal (Rp)"
-                    type="number"
-                    min={0}
-                    value={formBalance || ""}
-                    onChange={(e) => setFormBalance(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
-                  />
+                  <div className="flex items-center flex-1 gap-1">
+                    <span className="font-body-md text-body-md text-outline">Rp</span>
+                    <input
+                      className="flex-1 bg-transparent font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none"
+                      placeholder="0"
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      value={formBalance > 0 ? formatRupiahAmount(formBalance) : ""}
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, "");
+                        setFormBalance(digits ? Math.min(999_999_999_999, parseInt(digits, 10)) : 0);
+                      }}
+                    />
+                  </div>
                 </div>
               ) : (
                 <p className="font-body-sm text-body-sm text-on-surface-variant px-space-sm">
