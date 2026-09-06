@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useMemo, useRef, useState } from "react";
 import {
@@ -369,34 +370,53 @@ function CatatTransaksiForm() {
               </div>
               {/* Wallet Selector Row */}
               <div className="relative">
-                <div className="w-full flex items-center justify-between p-space-sm rounded-lg bg-surface-container-low text-left">
-                  <div className="flex items-center gap-space-xs min-w-0">
-                    <div className="w-9 h-9 rounded-lg bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center shrink-0">
-                      <span className="material-symbols-outlined text-[20px]">account_balance_wallet</span>
+                {wallets.length > 0 ? (
+                  <>
+                    <div className="w-full flex items-center justify-between p-space-sm rounded-lg bg-surface-container-low text-left">
+                      <div className="flex items-center gap-space-xs min-w-0">
+                        <div className="w-9 h-9 rounded-lg bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center shrink-0">
+                          <span className="material-symbols-outlined text-[20px]">account_balance_wallet</span>
+                        </div>
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-label-caps text-label-caps text-outline uppercase">Sumber Rekening</span>
+                          <span className="font-label-lg text-label-lg text-on-surface truncate">
+                            {wallets.find((w) => w.id === resolvedWalletId)
+                              ? getWalletDisplayLabel(wallets.find((w) => w.id === resolvedWalletId)!)
+                              : "Pilih dompet"}
+                          </span>
+                        </div>
+                      </div>
+                      <span className="material-symbols-outlined text-outline text-[20px]">chevron_right</span>
                     </div>
-                    <div className="flex flex-col min-w-0">
-                      <span className="font-label-caps text-label-caps text-outline uppercase">Sumber Rekening</span>
-                      <span className="font-label-lg text-label-lg text-on-surface truncate">
-                        {wallets.find((w) => w.id === resolvedWalletId)
-                          ? getWalletDisplayLabel(wallets.find((w) => w.id === resolvedWalletId)!)
-                          : "Pilih dompet"}
-                      </span>
+                    <select
+                      aria-label="Pilih dompet sumber"
+                      value={resolvedWalletId}
+                      onChange={(e) => setWalletId(e.target.value)}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    >
+                      {wallets.map((wallet) => (
+                        <option key={wallet.id} value={wallet.id}>
+                          {getWalletDisplayLabel(wallet)}
+                        </option>
+                      ))}
+                    </select>
+                  </>
+                ) : (
+                  <Link href="/dompet" className="w-full flex items-center justify-between p-space-sm rounded-lg bg-primary-container text-on-primary-container text-left hover:brightness-95 transition-all">
+                    <div className="flex items-center gap-space-xs min-w-0">
+                      <div className="w-9 h-9 rounded-lg bg-primary text-on-primary flex items-center justify-center shrink-0">
+                        <span className="material-symbols-outlined text-[20px]">add_circle</span>
+                      </div>
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-label-caps text-label-caps uppercase opacity-80">Sumber Rekening Kosong</span>
+                        <span className="font-label-lg text-label-lg truncate font-bold">
+                          + Buat Dompet Pertama
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                  <span className="material-symbols-outlined text-outline text-[20px]">chevron_right</span>
-                </div>
-                <select
-                  aria-label="Pilih dompet sumber"
-                  value={resolvedWalletId}
-                  onChange={(e) => setWalletId(e.target.value)}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                >
-                  {wallets.map((wallet) => (
-                    <option key={wallet.id} value={wallet.id}>
-                      {getWalletDisplayLabel(wallet)}
-                    </option>
-                  ))}
-                </select>
+                    <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+                  </Link>
+                )}
               </div>
               {/* Note Input Row */}
               <div className="flex items-center gap-space-xs p-space-sm rounded-lg bg-surface-container-low">

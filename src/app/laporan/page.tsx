@@ -100,6 +100,7 @@ export default function LaporanPage() {
           </div>
           <div className="flex items-center gap-space-xs">
             <button
+              onClick={() => alert("Belum ada notifikasi baru")}
               aria-label="Notifikasi"
               className="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
             >

@@ -2,20 +2,50 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useSession, signOut } from "next-auth/react";
+import { useSession, signOut } from "@/lib/supabase-auth";
 import { BottomNav } from "@/components/BottomNav";
 import { downloadCsv, transactionsToCsv } from "@/lib/csv-export";
 import { getHealthScoreLabel } from "@/lib/finance";
 import { formatMonthYearId, getInitials } from "@/lib/format";
 import { useFinance } from "@/lib/finance-context";
 import { currentUser as mockUser } from "@/lib/mock-data";
-import { setProTierAction } from "@/actions/finance";
+import { setProTierAction, getUserProfileAction } from "@/actions/finance";
+import { updateUserAvatarAction } from "@/actions/auth";
+import { savePushSubscriptionAction } from "@/actions/notifications";
+import { createClient } from "@/utils/supabase/client";
+import { useRef, useEffect } from "react";
 
 export default function ProfilPage() {
-  const { data: session } = useSession();
+  const { data: session, loading } = useSession();
   const user = session?.user;
   const { wallets, transactions, resetToDefault } = useFinance();
-  const [isReminderOn, setIsReminderOn] = useState(true);
+  const [isReminderOn, setIsReminderOn] = useState(false);
+  const [dbSubscriptionTier, setDbSubscriptionTier] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // Ambil data profil dari database (Prisma) karena metadata auth tidak sinkron real-time
+    getUserProfileAction().then((data) => {
+      if (data) {
+        setDbSubscriptionTier(data.subscriptionTier);
+        setIsReminderOn(data.isReminderOn);
+      } else {
+        setDbSubscriptionTier("FREE");
+      }
+    }).catch((err) => {
+      console.error(err);
+      setDbSubscriptionTier("FREE");
+    });
+  }, []);
+
+  if (loading || dbSubscriptionTier === null) {
+    return (
+      <div className="min-h-screen bg-surface flex items-center justify-center">
+        <span className="material-symbols-outlined animate-spin text-[40px] text-primary">sync</span>
+      </div>
+    );
+  }
 
   const fullName = user?.name || mockUser.fullName;
   const initials = getInitials(fullName);
@@ -37,9 +67,104 @@ export default function ProfilPage() {
   async function handleUpgradePro() {
     try {
       await setProTierAction();
-      alert("Berhasil! Akun Anda kini berstatus PRO. Anda bisa mengakses semua fitur premium.\nSilakan refresh halaman (atau login ulang) agar perubahan status terlihat di aplikasi.");
+      setDbSubscriptionTier("PRO");
+      alert("Berhasil! Akun Anda kini berstatus PRO. Coba nyalakan Pengingat Harian sekarang.");
     } catch (e) {
       alert("Gagal melakukan upgrade.");
+    }
+  }
+
+  async function handleToggleReminder() {
+    const isPro = dbSubscriptionTier === "PRO";
+    if (!isPro && !isReminderOn) {
+      const confirmUpgrade = window.confirm("Fitur Pengingat Harian eksklusif untuk pelanggan PRO. Ingin upgrade akun (Gratis untuk demo) sekarang?");
+      if (confirmUpgrade) {
+        handleUpgradePro();
+      }
+      return;
+    }
+
+    const nextState = !isReminderOn;
+    setIsReminderOn(nextState); // Optimistic UI update
+
+    if (nextState) {
+      // Aktifkan Notifikasi
+      if ("serviceWorker" in navigator && "PushManager" in window) {
+        try {
+          const permission = await Notification.requestPermission();
+          if (permission !== "granted") {
+            alert("Izin notifikasi ditolak oleh browser.");
+            setIsReminderOn(false);
+            return;
+          }
+
+          const registration = await navigator.serviceWorker.ready;
+          const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+          });
+
+          await savePushSubscriptionAction(subscription, true);
+        } catch (error) {
+          console.error("Gagal berlangganan push notification:", error);
+          alert("Terjadi kesalahan saat mengaktifkan push notification.");
+          setIsReminderOn(false);
+        }
+      } else {
+        alert("Browser Anda tidak mendukung fitur Notifikasi Push.");
+        setIsReminderOn(false);
+      }
+    } else {
+      // Matikan Notifikasi
+      await savePushSubscriptionAction(null, false);
+    }
+  }
+
+  async function handlePhotoUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Ukuran gambar terlalu besar. Maksimal 2MB.");
+      return;
+    }
+
+    setIsUploading(true);
+    const supabase = createClient();
+    const fileExt = file.name.split('.').pop();
+    const filePath = `${user.id}-${Math.random()}.${fileExt}`;
+
+    try {
+      // 1. Upload ke Storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // 2. Dapatkan URL publik
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      // 3. Update profil Auth Supabase
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: { avatar_url: publicUrl }
+      });
+
+      if (updateError) throw updateError;
+
+      // 4. Update profil Prisma Database
+      await updateUserAvatarAction(publicUrl);
+      
+      alert("Foto profil berhasil diperbarui!");
+      // window.location.reload(); // Supabase Auth listener akan otomatis memicu render ulang
+    } catch (err: any) {
+      console.error(err);
+      alert("Gagal mengunggah foto. Pastikan Anda telah membuat bucket 'avatars' di Supabase.");
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
 
@@ -52,6 +177,7 @@ export default function ProfilPage() {
           </div>
           <div className="flex items-center gap-space-xs">
             <button
+              onClick={() => alert("Belum ada notifikasi baru")}
               aria-label="Notifikasi"
               className="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
             >
@@ -73,12 +199,13 @@ export default function ProfilPage() {
                 Kelola preferensi dan akun KoZa Anda
               </p>
             </div>
-            <button
+            <Link
+              href="/pengaturan"
               aria-label="Buka Pengaturan Lanjutan"
               className="w-10 h-10 rounded-full bg-surface-container-low text-on-surface-variant flex items-center justify-center hover:bg-surface-container transition-all active:scale-95 shadow-sm"
             >
               <span className="material-symbols-outlined text-[20px]">settings</span>
-            </button>
+            </Link>
           </div>
 
           <section className="bg-surface-container-lowest rounded-xl p-space-lg shadow-[0_4px_20px_-2px_rgba(15,23,42,0.04),0_2px_6px_-1px_rgba(15,23,42,0.02)] relative overflow-hidden">
@@ -93,11 +220,22 @@ export default function ProfilPage() {
                   </div>
                 )}
                 <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading}
                   aria-label="Ubah foto profil"
-                  className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-primary-container text-on-primary flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-transform"
+                  className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-primary-container text-on-primary flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-transform disabled:opacity-50"
                 >
-                  <span className="material-symbols-outlined text-[14px]">edit</span>
+                  <span className="material-symbols-outlined text-[14px]">
+                    {isUploading ? "hourglass_empty" : "edit"}
+                  </span>
                 </button>
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={fileInputRef}
+                  className="hidden"
+                  onChange={handlePhotoUpload}
+                />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-space-xs mb-1">
@@ -106,7 +244,7 @@ export default function ProfilPage() {
                   </h3>
                   <span className="inline-flex items-center gap-1 bg-surface-container-low text-primary px-2.5 py-0.5 rounded-full font-label-md text-label-md font-semibold">
                     <span className="w-1.5 h-1.5 rounded-full bg-primary-container" />
-                    {(user as any)?.subscriptionTier || "Personal"}
+                    {dbSubscriptionTier === "PRO" ? "PRO" : "FREE"}
                   </span>
                 </div>
                 <p className="font-body-sm text-body-sm text-on-surface-variant truncate">
@@ -233,7 +371,7 @@ export default function ProfilPage() {
                   aria-checked={isReminderOn}
                   aria-label="Pengingat Harian"
                   role="switch"
-                  onClick={() => setIsReminderOn((v) => !v)}
+                  onClick={handleToggleReminder}
                   className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none ${
                     isReminderOn ? "bg-primary-container" : "bg-surface-variant"
                   }`}
@@ -245,24 +383,7 @@ export default function ProfilPage() {
                   />
                 </button>
               </div>
-              <div className="h-[1px] bg-surface-container mx-space-md" />
-              <a className="flex items-center justify-between p-space-md hover:bg-surface-container-low transition-colors group" href="#">
-                <div className="flex items-center gap-space-md min-w-0">
-                  <div className="w-10 h-10 rounded-lg bg-surface-container-low text-on-surface-variant flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
-                    <span className="material-symbols-outlined text-[20px]">lock</span>
-                  </div>
-                  <div className="min-w-0">
-                    <h4 className="font-label-lg text-label-lg text-on-surface">Keamanan &amp; PIN</h4>
-                    <p className="font-body-sm text-body-sm text-on-surface-variant truncate">
-                      Kunci aplikasi &amp; biometrik sidik jari
-                    </p>
-                  </div>
-                </div>
-                <span className="material-symbols-outlined text-on-surface-variant text-[20px] ml-space-xs">
-                  chevron_right
-                </span>
-              </a>
-              <div className="h-[1px] bg-surface-container mx-space-md" />
+
               <a className="flex items-center justify-between p-space-md hover:bg-surface-container-low transition-colors group" href="#">
                 <div className="flex items-center gap-space-md min-w-0">
                   <div className="w-10 h-10 rounded-lg bg-surface-container-low text-on-surface-variant flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
@@ -301,7 +422,7 @@ export default function ProfilPage() {
           <div className="pt-space-xs space-y-space-md">
             <button
               type="button"
-              onClick={() => signOut({ callbackUrl: "/api/auth/signin" })}
+              onClick={() => signOut()}
               className="w-full bg-error-container text-on-error-container hover:bg-error/20 font-label-lg text-label-lg py-3.5 px-space-md rounded-xl flex items-center justify-center gap-space-xs transition-all active:scale-[0.99] shadow-sm"
             >
               <span className="material-symbols-outlined text-[20px]">logout</span>

@@ -1,24 +1,47 @@
 "use server";
 
 import { PrismaClient } from "@prisma/client";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth";
+import { createClient } from "@/utils/supabase/server";
 import type { NewTransactionInput, UpdateTransactionInput, NewWalletInput, UpdateWalletInput } from "@/lib/finance-context";
 
 const prisma = new PrismaClient();
 
 export async function getSessionUser() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) throw new Error("Unauthorized");
-  const user = await prisma.user.findUnique({ where: { email: session.user.email } });
-  if (!user) throw new Error("User not found");
-  return user;
+  const supabase = await createClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+  
+  if (error || !user?.email) throw new Error("Unauthorized");
+  
+  let dbUser = await prisma.user.findUnique({ where: { email: user.email } });
+  
+  // Lazy Sync: Jika belum ada di Prisma (misal login langsung tanpa lewat callback)
+  if (!dbUser) {
+    dbUser = await prisma.user.create({
+      data: {
+        id: user.id,
+        email: user.email,
+        name: user.user_metadata?.full_name || user.email.split("@")[0],
+        image: user.user_metadata?.avatar_url,
+      }
+    });
+
+    // Auto-Provisioning: Buat Dompet Utama otomatis untuk pengguna baru
+    await prisma.wallet.create({
+      data: {
+        name: "Dompet Utama",
+        icon: "account_balance_wallet",
+        ownerId: dbUser.id
+      }
+    });
+  }
+  
+  return dbUser;
 }
 
 export async function getFinanceData() {
   try {
     const user = await getSessionUser();
-    const wallets = await prisma.wallet.findMany({
+    let wallets = await prisma.wallet.findMany({
       where: {
         OR: [
           { ownerId: user.id },
@@ -29,6 +52,19 @@ export async function getFinanceData() {
       orderBy: { createdAt: "asc" }
     });
     
+    // Auto-fix: Jika pengguna lama tidak memiliki dompet, buatkan satu otomatis
+    if (wallets.length === 0) {
+      const defaultWallet = await prisma.wallet.create({
+        data: {
+          name: "Dompet Utama",
+          icon: "account_balance_wallet",
+          ownerId: user.id
+        }
+      });
+      // Sesuaikan tipe agar memiliki properti members yang kosong
+      wallets = [{ ...defaultWallet, members: [] }];
+    }
+
     // Ambil semua ID dompet yang dapat diakses
     const accessibleWalletIds = wallets.map(w => w.id);
 
@@ -164,3 +200,12 @@ export async function setProTierAction() {
   return true;
 }
 
+
+// === FETCH USER PROFILE DARI PRISMA ===
+export async function getUserProfileAction() {
+  const user = await getSessionUser();
+  return {
+    subscriptionTier: user.subscriptionTier,
+    isReminderOn: user.isReminderOn
+  };
+}

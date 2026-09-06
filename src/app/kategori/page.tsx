@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/supabase-auth";
 import { BottomNav } from "@/components/BottomNav";
 import {
   DEFAULT_EXPENSE_CATEGORY_ID,

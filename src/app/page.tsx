@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/supabase-auth";
 import { BottomNav } from "@/components/BottomNav";
 import { TransactionListItem } from "@/components/TransactionListItem";
 import { getMonthlySummary, getRecentTransactions, getTotalBalance } from "@/lib/finance";
@@ -16,7 +16,7 @@ const RECENT_TRANSACTIONS_LIMIT = 3;
 
 export default function BerandaPage() {
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, loading } = useSession();
   const user = session?.user;
   const [isBalanceHidden, setIsBalanceHidden] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -40,6 +40,7 @@ export default function BerandaPage() {
           </div>
           <div className="flex items-center gap-space-xs">
             <button
+              onClick={() => showToast("Belum ada notifikasi baru")}
               aria-label="Notifikasi"
               className="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
             >
@@ -83,6 +84,7 @@ export default function BerandaPage() {
               </button>
               <div className="relative">
                 <button
+                  onClick={() => showToast("Belum ada notifikasi baru")}
                   aria-label="Notifikasi penting"
                   className="w-10 h-10 rounded-full bg-surface-container-lowest shadow-sm flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors"
                 >

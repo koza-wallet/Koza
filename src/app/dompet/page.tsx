@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useSession } from "next-auth/react";
+import { useSession } from "@/lib/supabase-auth";
 import { BottomNav } from "@/components/BottomNav";
 import { useFinance } from "@/lib/finance-context";
 import { getTotalBalance, getWalletMonthlyNet } from "@/lib/finance";

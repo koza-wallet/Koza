@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
-import { AuthProvider } from "@/components/AuthProvider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { FinanceProvider } from "@/lib/finance-context";
+import { SupabaseProvider } from "@/lib/supabase-auth";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -24,7 +24,7 @@ export const viewport: Viewport = {
   themeColor: "#10b981",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="id" suppressHydrationWarning>
       <head>
@@ -48,11 +48,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         className="bg-surface text-on-surface flex flex-col min-h-screen"
         style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
       >
-        <AuthProvider>
+        <SupabaseProvider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <FinanceProvider>{children}</FinanceProvider>
           </ThemeProvider>
-        </AuthProvider>
+        </SupabaseProvider>
       </body>
     </html>
   );
