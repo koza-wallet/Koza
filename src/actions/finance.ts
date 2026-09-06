@@ -81,3 +81,32 @@ export async function deleteTransactionAction(id: string) {
   });
   return true;
 }
+
+export async function getPocketsAction() {
+  const user = await getSessionUser();
+  return prisma.pocket.findMany({
+    where: { userId: user.id },
+    orderBy: { createdAt: "asc" }
+  });
+}
+
+export async function addPocketAction(input: { name: string, targetAmount: number, color?: string, icon?: string }) {
+  const user = await getSessionUser();
+  return prisma.pocket.create({
+    data: {
+      name: input.name,
+      targetAmount: input.targetAmount,
+      color: input.color || "bg-primary",
+      icon: input.icon || "savings",
+      userId: user.id
+    }
+  });
+}
+
+export async function addPocketBalanceAction(id: string, amount: number) {
+  const user = await getSessionUser();
+  return prisma.pocket.update({
+    where: { id, userId: user.id },
+    data: { currentBalance: { increment: amount } }
+  });
+}
