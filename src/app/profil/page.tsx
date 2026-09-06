@@ -13,7 +13,7 @@ import { setSubscriptionTierAction, getUserProfileAction } from "@/actions/finan
 import { updateUserAvatarAction } from "@/actions/auth";
 import { savePushSubscriptionAction } from "@/actions/notifications";
 import { createClient } from "@/utils/supabase/client";
-import { useRef, useEffect, useState as useState2 } from "react";
+import { useRef, useEffect } from "react";
 import { PaywallModal } from "@/components/PaywallModal";
 
 export default function ProfilPage() {
