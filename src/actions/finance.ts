@@ -229,15 +229,15 @@ export async function getUserProfileAction() {
     });
   }
 
-  // Auto-Provisioning Developer Account
+  // Auto-Provisioning: akun developer otomatis mendapat tier DEVELOPER
+  // jika tier masih FREE (belum pernah diubah manual lewat Developer Menu)
   const devEmails = ["novriekadito@gmail.com", "novriekadito9@gmail.com"];
   if (devEmails.includes(user.email) && tier === "FREE") {
-    // Jika masih FREE, jadikan DEVELOPER sebagai default awal.
-    // Jika developer ingin tes UI FREE, dia bisa ubah manual lewat Pengaturan.
-    // Namun, agar tidak tertimpa balik ke DEVELOPER setiap kali muat ulang,
-    // kita asumsikan developer akan mengubah ke tier "TEST_FREE" atau tetap "FREE".
-    // Lebih baik biarkan saja, cukup developer yang ubah sendiri lewat menu,
-    // atau jika belum pernah, kita set DEVELOPER.
+    tier = "DEVELOPER";
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { subscriptionTier: "DEVELOPER" }
+    });
   }
 
   return {
