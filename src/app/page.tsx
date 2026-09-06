@@ -16,7 +16,13 @@ const RECENT_TRANSACTIONS_LIMIT = 3;
 export default function BerandaPage() {
   const router = useRouter();
   const [isBalanceHidden, setIsBalanceHidden] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
   const { wallets, transactions } = useFinance();
+
+  function showToast(message: string) {
+    setToast(message);
+    window.setTimeout(() => setToast(null), 2400);
+  }
 
   const totalBalance = getTotalBalance(wallets);
   const monthlySummary = getMonthlySummary(transactions, REFERENCE_DATE);
@@ -121,15 +127,15 @@ export default function BerandaPage() {
                 </div>
                 {/* Micro Quick Actions Bar inside Card */}
                 <div className="pt-space-xs flex items-center justify-between gap-space-xs">
-                  <button className="flex-1 py-2 px-space-xs bg-white/10 hover:bg-white/15 active:scale-98 rounded-xl flex items-center justify-center gap-1.5 transition-all">
+                  <button onClick={() => showToast("Fitur Top Up akan hadir di rilis mendatang")} className="flex-1 py-2 px-space-xs bg-white/10 hover:bg-white/15 active:scale-98 rounded-xl flex items-center justify-center gap-1.5 transition-all">
                     <span className="material-symbols-outlined text-[16px] text-primary-fixed">add_circle</span>
                     <span className="font-label-md text-label-md text-white/90">Top Up</span>
                   </button>
-                  <button className="flex-1 py-2 px-space-xs bg-white/10 hover:bg-white/15 active:scale-98 rounded-xl flex items-center justify-center gap-1.5 transition-all">
+                  <button onClick={() => showToast("Fitur Transfer akan hadir di rilis mendatang")} className="flex-1 py-2 px-space-xs bg-white/10 hover:bg-white/15 active:scale-98 rounded-xl flex items-center justify-center gap-1.5 transition-all">
                     <span className="material-symbols-outlined text-[16px] text-secondary-fixed">send_money</span>
                     <span className="font-label-md text-label-md text-white/90">Transfer</span>
                   </button>
-                  <button className="flex-1 py-2 px-space-xs bg-white/10 hover:bg-white/15 active:scale-98 rounded-xl flex items-center justify-center gap-1.5 transition-all">
+                  <button onClick={() => showToast("Fitur Kantong akan hadir di rilis mendatang")} className="flex-1 py-2 px-space-xs bg-white/10 hover:bg-white/15 active:scale-98 rounded-xl flex items-center justify-center gap-1.5 transition-all">
                     <span className="material-symbols-outlined text-[16px] text-primary-fixed-dim">savings</span>
                     <span className="font-label-md text-label-md text-white/90">Kantong</span>
                   </button>
@@ -241,7 +247,7 @@ export default function BerandaPage() {
                   </span>
                 </div>
               </div>
-              <button className="px-3 py-1.5 rounded-full bg-surface-container-highest text-primary font-label-md text-label-md hover:bg-surface-container-high transition-colors">
+              <button onClick={() => showToast("Fitur Analisis akan hadir di rilis mendatang")} className="px-3 py-1.5 rounded-full bg-surface-container-highest text-primary font-label-md text-label-md hover:bg-surface-container-high transition-colors">
                 Analisis
               </button>
             </div>
@@ -279,6 +285,20 @@ export default function BerandaPage() {
           </div>
         </div>
       </main>
+
+      <div
+        className={`fixed bottom-24 left-1/2 -translate-x-1/2 px-space-md py-space-xs rounded-full bg-inverse-surface text-inverse-on-surface shadow-2xl flex items-center gap-space-xs z-50 max-w-[90vw] transition-all duration-300 ${
+          toast ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2 pointer-events-none"
+        }`}
+      >
+        <span
+          className="material-symbols-outlined text-[18px] text-primary-fixed"
+          style={{ fontVariationSettings: "'FILL' 1" }}
+        >
+          info
+        </span>
+        <span className="font-body-sm text-body-sm text-center">{toast}</span>
+      </div>
 
       <BottomNav />
     </>
