@@ -4,14 +4,22 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { getUserProfileAction, setSubscriptionTierAction } from "@/actions/finance";
+import { useSession } from "@/lib/supabase-auth";
 
 export default function PengaturanPage() {
   const router = useRouter();
+  const { data: session } = useSession();
   const [darkMode, setDarkMode] = useState(true);
   const [dbUserEmail, setDbUserEmail] = useState("");
   const [dbTier, setDbTier] = useState("FREE");
 
-  // Sync mode dengan HTML class Tailwind & Fetch Profil
+  // Set email dari session client-side segera (tidak butuh server action)
+  useEffect(() => {
+    const emailFromSession = session?.user?.email;
+    if (emailFromSession) setDbUserEmail(emailFromSession);
+  }, [session]);
+
+  // Sync mode gelap + fetch tier dari server
   useEffect(() => {
     const isDark = document.documentElement.classList.contains("dark");
     setDarkMode(isDark);
@@ -21,7 +29,7 @@ export default function PengaturanPage() {
         if (data.email) setDbUserEmail(data.email);
         setDbTier(data.subscriptionTier);
       }
-    });
+    }).catch(() => {});
   }, []);
 
   const handleDevTierChange = async (tier: string) => {

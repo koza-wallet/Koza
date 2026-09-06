@@ -11,6 +11,9 @@ export async function getSessionUser() {
   const { data: { user }, error } = await supabase.auth.getUser();
   
   if (error || !user?.email) throw new Error("Unauthorized");
+
+  // Nama canonical dari Supabase: metadata full_name, atau prefix email
+  const supabaseName = user.user_metadata?.full_name || user.email.split("@")[0];
   
   let dbUser = await prisma.user.findUnique({ where: { email: user.email } });
   
@@ -20,7 +23,7 @@ export async function getSessionUser() {
       data: {
         id: user.id,
         email: user.email,
-        name: user.user_metadata?.full_name || user.email.split("@")[0],
+        name: supabaseName,
         image: user.user_metadata?.avatar_url,
       }
     });
@@ -33,6 +36,14 @@ export async function getSessionUser() {
         ownerId: dbUser.id
       }
     });
+  } else {
+    // Selalu sync nama dari Supabase ke DB agar tidak ada nama mock yang tersisa
+    if (dbUser.name !== supabaseName) {
+      dbUser = await prisma.user.update({
+        where: { id: dbUser.id },
+        data: { name: supabaseName }
+      });
+    }
   }
   
   return dbUser;

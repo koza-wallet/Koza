@@ -12,6 +12,8 @@ import { useFinance } from "@/lib/finance-context";
 import { calculateHealthScore } from "@/lib/analysis";
 import { currentUser as mockUser } from "@/lib/mock-data";
 import { QuickRepaymentModal } from "@/components/QuickRepaymentModal";
+import { getUserProfileAction } from "@/actions/finance";
+import { useEffect } from "react";
 
 const HIDDEN_BALANCE_PLACEHOLDER = "••••••••";
 const RECENT_TRANSACTIONS_LIMIT = 3;
@@ -23,8 +25,17 @@ export default function BerandaPage() {
   const [isBalanceHidden, setIsBalanceHidden] = useState(false);
   const [isRepayModalOpen, setIsRepayModalOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [dbUserName, setDbUserName] = useState<string>("");
   const { wallets, transactions, pockets } = useFinance();
   const [currentDate] = useState(() => new Date());
+
+  useEffect(() => {
+    if (session?.user) {
+      getUserProfileAction().then((data) => {
+        if (data?.name) setDbUserName(data.name);
+      }).catch(() => {});
+    }
+  }, [session]);
 
   function showToast(message: string) {
     setToast(message);
@@ -110,7 +121,7 @@ export default function BerandaPage() {
                 {user?.image ? (
                   <img className="w-full h-full object-cover" alt="" src={user.image} />
                 ) : (
-                  user?.name ? user.name.charAt(0).toUpperCase() : (user?.email ? user.email.charAt(0).toUpperCase() : mockUser.name.charAt(0).toUpperCase())
+                  (dbUserName || user?.name || user?.email?.split("@")[0] || "K").charAt(0).toUpperCase()
                 )}
               </div>
               <div className="flex flex-col">
@@ -119,7 +130,7 @@ export default function BerandaPage() {
                   {formatFullDateId(currentDate)}
                 </span>
                 <h2 className="font-headline-md text-headline-md text-on-surface tracking-tight">
-                  Halo, {user?.name ? user.name.split(' ')[0] : (user?.email ? user.email.split("@")[0] : mockUser.name)}! 👋
+                  Halo, {(dbUserName || user?.name || user?.email?.split("@")[0] || "Kawan").split(" ")[0]}! 👋
                 </h2>
               </div>
             </div>
