@@ -169,15 +169,6 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       try {
         const data = await getFinanceData();
         
-        // Convert DB format to local UI format
-        const formattedWallets: Wallet[] = data.wallets.map((w: any) => ({
-          id: w.id,
-          name: w.name,
-          type: "cash", // Fallback, could map from icon
-          provider: w.icon,
-          balance: 0 // We'd ideally calculate this or store it
-        }));
-
         const formattedTransactions: Transaction[] = data.transactions.map((t: any) => ({
           id: t.id,
           title: t.title,
@@ -191,6 +182,22 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           note: t.note || undefined,
           timestamp: t.date.toISOString(),
         }));
+
+        const formattedWallets: Wallet[] = data.wallets.map((w: any) => {
+          // Hitung saldo berdasarkan transaksi
+          const walletTransactions = formattedTransactions.filter(t => t.walletId === w.id);
+          const balance = walletTransactions.reduce((acc, t) => {
+            return t.direction === "income" ? acc + t.amount : acc - t.amount;
+          }, 0);
+
+          return {
+            id: w.id,
+            name: w.name,
+            type: "cash", // Fallback, could map from icon
+            provider: w.icon,
+            balance: balance
+          };
+        });
 
         dispatch({ type: "HYDRATE", payload: { wallets: formattedWallets, transactions: formattedTransactions } });
       } catch (e) {
