@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { AuthProvider } from "@/components/AuthProvider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { FinanceProvider } from "@/lib/finance-context";
 import "./globals.css";
@@ -47,9 +48,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         className="bg-surface text-on-surface flex flex-col min-h-screen"
         style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
       >
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <FinanceProvider>{children}</FinanceProvider>
-        </ThemeProvider>
+        <AuthProvider>
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+            <FinanceProvider>{children}</FinanceProvider>
+          </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   );

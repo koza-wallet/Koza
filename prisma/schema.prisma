@@ -1,0 +1,134 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Models for NextAuth
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Core Domain Models
+model User {
+  id               String         @id @default(cuid())
+  email            String         @unique
+  name             String?
+  image            String?
+  subscriptionTier String         @default("FREE") // FREE or PRO
+  createdAt        DateTime       @default(now())
+  
+  accounts         Account[]
+  sessions         Session[]
+  wallets          Wallet[]
+  categories       Category[]
+  pockets          Pocket[]
+  memberships      WalletMember[]
+  transactions     Transaction[]
+}
+
+model Wallet {
+  id           String         @id @default(cuid())
+  name         String
+  icon         String         @default("account_balance_wallet")
+  ownerId      String
+  owner        User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  createdAt    DateTime       @default(now())
+  
+  members      WalletMember[]
+  transactions Transaction[]
+}
+
+model WalletMember {
+  id       String @id @default(cuid())
+  walletId String
+  userId   String
+  role     String @default("VIEWER") // VIEWER, EDITOR, OWNER
+
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([walletId, userId])
+}
+
+model Category {
+  id       String  @id @default(cuid())
+  name     String
+  fullName String
+  icon     String
+  bg       String
+  text     String
+  type     String  // income, expense, both
+  userId   String? // null means global/default category
+  user     User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Transaction {
+  id            String   @id @default(cuid())
+  title         String
+  amount        Float
+  note          String?
+  date          DateTime
+  direction     String   // income or expense
+  paymentMethod String
+  createdAt     DateTime @default(now())
+
+  // Multi-currency support
+  currencyCode  String @default("IDR")
+  exchangeRate  Float  @default(1.0)
+  
+  walletId      String
+  wallet        Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  
+  categoryId    String // ID of category (either global or custom)
+  
+  userId        String // creator
+  user          User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Pocket {
+  id             String   @id @default(cuid())
+  name           String
+  targetAmount   Float
+  currentBalance Float    @default(0)
+  color          String   @default("bg-primary")
+  icon           String   @default("savings")
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now())
+}
