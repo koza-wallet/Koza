@@ -65,7 +65,7 @@ export interface UpdateWalletInput {
 type FinanceAction =
   | { type: "ADD_TRANSACTION"; payload: Transaction }
   | { type: "UPDATE_TRANSACTION"; payload: Transaction }
-  | { type: "DELETE_TRANSACTION"; payload: { id: string, previousWalletId: string, amount: number, direction: string } }
+  | { type: "DELETE_TRANSACTION"; payload: { id: string, previousWalletId?: string, amount: number, direction: string } }
   | { type: "ADD_WALLET"; payload: Wallet }
   | { type: "UPDATE_WALLET"; payload: UpdateWalletInput }
   | { type: "DELETE_WALLET"; payload: { id: string } }
@@ -183,7 +183,6 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           title: t.title,
           amount: t.amount,
           direction: t.direction as TransactionDirection,
-          date: new Date(t.date),
           walletId: t.walletId,
           categoryId: t.categoryId,
           category: t.categoryId, // Simplification
@@ -217,7 +216,6 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
             title: newTrx.title,
             amount: newTrx.amount,
             direction: newTrx.direction as TransactionDirection,
-            date: newTrx.date,
             walletId: newTrx.walletId,
             categoryId: newTrx.categoryId,
             category: input.category,
