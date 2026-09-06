@@ -4,15 +4,15 @@ import webpush from "web-push";
 
 const prisma = new PrismaClient();
 
-// Konfigurasi Web Push dengan VAPID keys
-webpush.setVapidDetails(
-  "mailto:admin@koza.com",
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY as string,
-  process.env.VAPID_PRIVATE_KEY as string
-);
-
 export async function GET(request: Request) {
   try {
+    if (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+      webpush.setVapidDetails(
+        "mailto:admin@koza.com",
+        process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+        process.env.VAPID_PRIVATE_KEY
+      );
+    }
     // Keamanan Cron: Pastikan ini dipanggil oleh Vercel Cron atau script internal (bisa dicek lewat Header)
     // Untuk pengembangan, kita izinkan pemanggilan langsung (atau gunakan secret token jika di produksi).
     
