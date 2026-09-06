@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "postinstall": "prisma skills sync || exit 0"
+    "postinstall": "prisma generate && prisma skills sync || exit 0"
   },
   "dependencies": {
     "clsx": "^2.1.1",
