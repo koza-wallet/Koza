@@ -53,6 +53,8 @@ function CatatTransaksiForm() {
   const resolvedWalletId = wallets.some((w) => w.id === walletId) ? walletId : defaultWalletId;
   const [selectedDate, setSelectedDate] = useState(REFERENCE_DATE);
   const [note, setNote] = useState("");
+  const [currencyCode, setCurrencyCode] = useState("IDR");
+  const [exchangeRate, setExchangeRate] = useState(1.0);
   const [status, setStatus] = useState<"idle" | "saving" | "success">("idle");
   // Tracks which transaction id the form fields were last prefilled from —
   // React's own recommended "adjust state during render" pattern (not an
@@ -142,10 +144,12 @@ function CatatTransaksiForm() {
         category: category.fullName,
         categoryIcon: category.icon,
         direction,
-        amount: rawAmount,
+        amount: Math.round(rawAmount * exchangeRate),
         walletId: resolvedWalletId,
         note: trimmedNote || undefined,
         timestamp: combineDateWithTimeOfDay(selectedDate, REFERENCE_DATE),
+        currencyCode,
+        exchangeRate
       };
 
       if (editingTransaction) {
@@ -233,9 +237,23 @@ function CatatTransaksiForm() {
               className="w-full flex items-center justify-center gap-2 cursor-text group my-1"
               onClick={() => amountInputRef.current?.focus()}
             >
-              <span className="font-headline-md sm:font-headline-lg text-outline font-bold select-none shrink-0">
-                Rp
-              </span>
+              <select 
+                value={currencyCode}
+                onChange={(e) => {
+                  const code = e.target.value;
+                  setCurrencyCode(code);
+                  if (code === "USD") setExchangeRate(15500);
+                  else if (code === "EUR") setExchangeRate(17000);
+                  else if (code === "SGD") setExchangeRate(11600);
+                  else setExchangeRate(1.0);
+                }}
+                className="font-headline-md sm:font-headline-lg text-primary font-bold bg-transparent outline-none cursor-pointer appearance-none text-right"
+              >
+                <option value="IDR">Rp</option>
+                <option value="USD">$</option>
+                <option value="EUR">€</option>
+                <option value="SGD">S$</option>
+              </select>
               <input
                 ref={amountInputRef}
                 type="text"

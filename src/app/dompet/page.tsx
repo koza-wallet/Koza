@@ -283,6 +283,23 @@ export default function KelolaDompetPage() {
                     </div>
                     <div className="flex items-center space-x-1 shrink-0">
                       <button
+                        aria-label={`Undang Anggota ke ${wallet.name}`}
+                        type="button"
+                        onClick={() => {
+                          const email = window.prompt("Masukkan email pengguna KoZa yang ingin diundang:");
+                          if (email) {
+                            import("@/actions/finance").then((m) => {
+                               m.addWalletMemberAction(wallet.id, email)
+                                .then(() => alert("Undangan berhasil dikirim!"))
+                                .catch((e) => alert(e.message));
+                            });
+                          }
+                        }}
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">person_add</span>
+                      </button>
+                      <button
                         aria-label={`Pengaturan Dompet ${wallet.name}`}
                         type="button"
                         onClick={() => openEditForm(wallet)}

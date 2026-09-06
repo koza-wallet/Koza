@@ -19,13 +19,26 @@ export async function getFinanceData() {
   try {
     const user = await getSessionUser();
     const wallets = await prisma.wallet.findMany({
-      where: { ownerId: user.id },
+      where: {
+        OR: [
+          { ownerId: user.id },
+          { members: { some: { userId: user.id } } }
+        ]
+      },
       include: { members: true },
       orderBy: { createdAt: "asc" }
     });
     
+    // Ambil semua ID dompet yang dapat diakses
+    const accessibleWalletIds = wallets.map(w => w.id);
+
     const transactions = await prisma.transaction.findMany({
-      where: { userId: user.id },
+      where: { 
+        OR: [
+          { userId: user.id },
+          { walletId: { in: accessibleWalletIds } }
+        ]
+      },
       orderBy: { date: "desc" }
     });
 
@@ -68,7 +81,9 @@ export async function addTransactionAction(input: NewTransactionInput) {
       note: input.note,
       walletId: input.walletId,
       categoryId: input.categoryId,
-      userId: user.id
+      userId: user.id,
+      currencyCode: input.currencyCode || "IDR",
+      exchangeRate: input.exchangeRate || 1.0
     }
   });
   return transaction;
@@ -110,3 +125,32 @@ export async function addPocketBalanceAction(id: string, amount: number) {
     data: { currentBalance: { increment: amount } }
   });
 }
+
+// === SHARED WALLET ACTIONS ===
+export async function addWalletMemberAction(walletId: string, emailToInvite: string) {
+  const user = await getSessionUser();
+  
+  // 1. Verifikasi pemilik dompet
+  const wallet = await prisma.wallet.findUnique({
+    where: { id: walletId, ownerId: user.id }
+  });
+  if (!wallet) throw new Error("Akses ditolak atau dompet tidak ditemukan");
+
+  // 2. Cari user yang akan diundang
+  const invitedUser = await prisma.user.findUnique({
+    where: { email: emailToInvite }
+  });
+  if (!invitedUser) throw new Error("Pengguna dengan email tersebut tidak ditemukan");
+  
+  if (invitedUser.id === user.id) throw new Error("Anda tidak bisa mengundang diri sendiri");
+
+  // 3. Tambahkan ke WalletMember
+  return prisma.walletMember.create({
+    data: {
+      walletId,
+      userId: invitedUser.id,
+      role: "EDITOR" // Default izin edit transaksi
+    }
+  });
+}
+

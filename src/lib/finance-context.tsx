@@ -39,6 +39,8 @@ export interface NewTransactionInput {
   walletId: string;
   note?: string;
   timestamp: string;
+  currencyCode?: string;
+  exchangeRate?: number;
 }
 
 export interface UpdateTransactionInput extends NewTransactionInput {
