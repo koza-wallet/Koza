@@ -3,18 +3,21 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { BottomNav } from "@/components/BottomNav";
 import { TransactionListItem } from "@/components/TransactionListItem";
 import { getMonthlySummary, getRecentTransactions, getTotalBalance } from "@/lib/finance";
 import { formatFullDateId, formatRupiahAmount, formatSignedRupiah } from "@/lib/format";
 import { useFinance } from "@/lib/finance-context";
-import { REFERENCE_DATE, currentUser } from "@/lib/mock-data";
+import { REFERENCE_DATE, currentUser as mockUser } from "@/lib/mock-data";
 
 const HIDDEN_BALANCE_PLACEHOLDER = "••••••••";
 const RECENT_TRANSACTIONS_LIMIT = 3;
 
 export default function BerandaPage() {
   const router = useRouter();
+  const { data: session } = useSession();
+  const user = session?.user;
   const [isBalanceHidden, setIsBalanceHidden] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const { wallets, transactions } = useFinance();
@@ -54,9 +57,12 @@ export default function BerandaPage() {
           {/* Top Greeting & Context */}
           <div className="px-margin-screen pt-space-xs pb-space-md flex items-center justify-between">
             <div className="flex items-center gap-space-sm">
-              <div className="relative w-12 h-12 rounded-full overflow-hidden shadow-sm bg-surface-container-high flex-shrink-0">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img className="w-full h-full object-cover" alt="" src={currentUser.avatarUrl} />
+              <div className="relative w-12 h-12 rounded-full overflow-hidden shadow-sm bg-surface-container-high flex-shrink-0 flex items-center justify-center text-primary font-headline-sm">
+                {user?.image ? (
+                  <img className="w-full h-full object-cover" alt="" src={user.image} />
+                ) : (
+                  (user?.name || mockUser.name).charAt(0).toUpperCase()
+                )}
               </div>
               <div className="flex flex-col">
                 <span className="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1">
@@ -64,7 +70,7 @@ export default function BerandaPage() {
                   {formatFullDateId(REFERENCE_DATE)}
                 </span>
                 <h2 className="font-headline-md text-headline-md text-on-surface tracking-tight">
-                  Halo, {currentUser.name}! 👋
+                  Halo, {user?.name?.split(' ')[0] || mockUser.name}! 👋
                 </h2>
               </div>
             </div>
@@ -240,7 +246,7 @@ export default function BerandaPage() {
                 </div>
                 <div className="flex flex-col">
                   <span className="font-label-lg text-label-lg text-on-surface">
-                    Skor Kesehatan: {currentUser.healthScore}/100
+                    Skor Kesehatan: {mockUser.healthScore}/100
                   </span>
                   <span className="font-body-sm text-body-sm text-on-surface-variant">
                     Kebutuhan primer terkendali rapi!

@@ -2,20 +2,24 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useSession, signOut } from "next-auth/react";
 import { BottomNav } from "@/components/BottomNav";
 import { downloadCsv, transactionsToCsv } from "@/lib/csv-export";
 import { getHealthScoreLabel } from "@/lib/finance";
 import { formatMonthYearId, getInitials } from "@/lib/format";
 import { useFinance } from "@/lib/finance-context";
-import { currentUser } from "@/lib/mock-data";
+import { currentUser as mockUser } from "@/lib/mock-data";
 
 export default function ProfilPage() {
+  const { data: session } = useSession();
+  const user = session?.user;
   const { wallets, transactions, resetToDefault } = useFinance();
   const [isReminderOn, setIsReminderOn] = useState(true);
 
-  const initials = getInitials(currentUser.fullName);
-  const healthLabel = getHealthScoreLabel(currentUser.healthScore);
-  const memberSinceLabel = formatMonthYearId(new Date(currentUser.memberSince));
+  const fullName = user?.name || mockUser.fullName;
+  const initials = getInitials(fullName);
+  const healthLabel = getHealthScoreLabel(mockUser.healthScore);
+  const memberSinceLabel = formatMonthYearId(new Date(mockUser.memberSince));
 
   function handleResetToDefault() {
     const confirmed = window.confirm(
@@ -71,9 +75,13 @@ export default function ProfilPage() {
             <div className="absolute -right-8 -top-8 w-32 h-32 bg-primary-fixed/30 rounded-full blur-2xl pointer-events-none" />
             <div className="relative flex items-center gap-space-md">
               <div className="relative flex-shrink-0">
-                <div className="w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center shadow-inner text-primary font-headline-md text-headline-md">
-                  {initials}
-                </div>
+                {user?.image ? (
+                  <img src={user.image} alt={fullName} className="w-16 h-16 rounded-full object-cover shadow-inner" />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-surface-container-high flex items-center justify-center shadow-inner text-primary font-headline-md text-headline-md">
+                    {initials}
+                  </div>
+                )}
                 <button
                   aria-label="Ubah foto profil"
                   className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-primary-container text-on-primary flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition-transform"
@@ -84,7 +92,7 @@ export default function ProfilPage() {
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-space-xs mb-1">
                   <h3 className="font-headline-sm text-headline-sm text-on-surface truncate">
-                    {currentUser.fullName}
+                    {fullName}
                   </h3>
                   <span className="inline-flex items-center gap-1 bg-surface-container-low text-primary px-2.5 py-0.5 rounded-full font-label-md text-label-md font-semibold">
                     <span className="w-1.5 h-1.5 rounded-full bg-primary-container" />
@@ -92,7 +100,7 @@ export default function ProfilPage() {
                   </span>
                 </div>
                 <p className="font-body-sm text-body-sm text-on-surface-variant truncate">
-                  {currentUser.email} • Sejak {memberSinceLabel}
+                  {user?.email || mockUser.email} • Sejak {memberSinceLabel}
                 </p>
               </div>
             </div>
@@ -115,7 +123,7 @@ export default function ProfilPage() {
                 <div className="min-w-0">
                   <p className="font-label-caps text-label-caps text-on-surface-variant uppercase">Skor Finansial</p>
                   <p className="font-label-lg text-label-lg text-primary truncate">
-                    {healthLabel} ({currentUser.healthScore}/100)
+                    {healthLabel} ({mockUser.healthScore}/100)
                   </p>
                 </div>
               </div>
@@ -267,6 +275,7 @@ export default function ProfilPage() {
           <div className="pt-space-xs space-y-space-md">
             <button
               type="button"
+              onClick={() => signOut({ callbackUrl: "/api/auth/signin" })}
               className="w-full bg-error-container text-on-error-container hover:bg-error/20 font-label-lg text-label-lg py-3.5 px-space-md rounded-xl flex items-center justify-center gap-space-xs transition-all active:scale-[0.99] shadow-sm"
             >
               <span className="material-symbols-outlined text-[20px]">logout</span>
