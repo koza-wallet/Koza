@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { BottomNav } from "@/components/BottomNav";
 import { useFinance } from "@/lib/finance-context";
 import { getTotalBalance, getWalletMonthlyNet } from "@/lib/finance";
@@ -37,6 +38,7 @@ type FormMode = { type: "add" } | { type: "edit"; walletId: string };
 
 export default function KelolaDompetPage() {
   const router = useRouter();
+  const { data: session } = useSession();
   const { wallets, transactions, addWallet, updateWallet, deleteWallet } = useFinance();
 
   const [isBalanceHidden, setIsBalanceHidden] = useState(false);
@@ -51,6 +53,13 @@ export default function KelolaDompetPage() {
   const totalBalance = getTotalBalance(wallets);
 
   function openAddForm() {
+    // Logika PAYWALL: Pengguna FREE maksimal 2 Dompet
+    const tier = (session?.user as any)?.subscriptionTier || "FREE";
+    if (tier === "FREE" && wallets.length >= 2) {
+      window.alert("🚀 Upgrade ke PRO untuk membuat lebih dari 2 dompet!");
+      return;
+    }
+
     setFormMode({ type: "add" });
     setFormName("");
     setFormType("bank");

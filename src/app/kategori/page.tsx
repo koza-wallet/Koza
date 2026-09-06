@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
+import { useSession } from "next-auth/react";
 import { BottomNav } from "@/components/BottomNav";
 import {
   DEFAULT_EXPENSE_CATEGORY_ID,
@@ -16,6 +17,7 @@ import type { TransactionDirection } from "@/lib/types";
 
 export default function KategoriTransaksiPage() {
   const router = useRouter();
+  const { data: session } = useSession();
   const { transactions } = useFinance();
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -262,7 +264,14 @@ export default function KategoriTransaksiPage() {
           <div className="pt-space-xs">
             <button
               type="button"
-              onClick={() => showToast("Kategori kustom akan hadir di rilis mendatang")}
+              onClick={() => {
+                const tier = (session?.user as any)?.subscriptionTier || "FREE";
+                if (tier === "FREE") {
+                  showToast("🚀 Upgrade ke PRO untuk membuat Kategori Kustom!");
+                } else {
+                  showToast("Kategori kustom akan hadir di rilis mendatang");
+                }
+              }}
               className="w-full h-12 rounded-full bg-primary-container hover:bg-primary text-on-primary font-label-lg text-label-lg flex items-center justify-center gap-space-xs shadow-md active:scale-[0.99] transition-all"
             >
               <span className="material-symbols-outlined text-[20px]">add_circle</span>
