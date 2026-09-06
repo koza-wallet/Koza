@@ -9,6 +9,7 @@ import { getHealthScoreLabel } from "@/lib/finance";
 import { formatMonthYearId, getInitials } from "@/lib/format";
 import { useFinance } from "@/lib/finance-context";
 import { currentUser as mockUser } from "@/lib/mock-data";
+import { setProTierAction } from "@/actions/finance";
 
 export default function ProfilPage() {
   const { data: session } = useSession();
@@ -31,6 +32,15 @@ export default function ProfilPage() {
   function handleExport() {
     const csv = transactionsToCsv(transactions, wallets);
     downloadCsv("koza-riwayat-transaksi.csv", csv);
+  }
+
+  async function handleUpgradePro() {
+    try {
+      await setProTierAction();
+      alert("Berhasil! Akun Anda kini berstatus PRO. Anda bisa mengakses semua fitur premium.\nSilakan refresh halaman (atau login ulang) agar perubahan status terlihat di aplikasi.");
+    } catch (e) {
+      alert("Gagal melakukan upgrade.");
+    }
   }
 
   return (
@@ -96,7 +106,7 @@ export default function ProfilPage() {
                   </h3>
                   <span className="inline-flex items-center gap-1 bg-surface-container-low text-primary px-2.5 py-0.5 rounded-full font-label-md text-label-md font-semibold">
                     <span className="w-1.5 h-1.5 rounded-full bg-primary-container" />
-                    Personal Free
+                    {(user as any)?.subscriptionTier || "Personal"}
                   </span>
                 </div>
                 <p className="font-body-sm text-body-sm text-on-surface-variant truncate">
@@ -270,6 +280,22 @@ export default function ProfilPage() {
                 </span>
               </a>
             </div>
+          </section>
+
+          <section className="space-y-space-xs pt-4">
+             <div className="px-space-xxs">
+              <span className="font-label-caps text-label-caps text-tertiary uppercase tracking-wider">
+                Menu Developer
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleUpgradePro}
+              className="w-full bg-tertiary-container text-on-tertiary-container hover:bg-tertiary/20 font-label-lg text-label-lg py-3.5 px-space-md rounded-xl flex items-center justify-center gap-space-xs transition-all shadow-sm"
+            >
+              <span className="material-symbols-outlined text-[20px]">workspace_premium</span>
+              <span>Aktifkan Langganan PRO (Gratis)</span>
+            </button>
           </section>
 
           <div className="pt-space-xs space-y-space-md">

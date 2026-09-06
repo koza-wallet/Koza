@@ -154,3 +154,13 @@ export async function addWalletMemberAction(walletId: string, emailToInvite: str
   });
 }
 
+// === DEV MODE: UPGRADE TIER ===
+export async function setProTierAction() {
+  const user = await getSessionUser();
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { subscriptionTier: "PRO" }
+  });
+  return true;
+}
+
