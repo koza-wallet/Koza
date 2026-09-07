@@ -229,10 +229,10 @@ export async function setSubscriptionTierAction(tier: string) {
       where: { id: user.id },
       data: { subscriptionTier: tier }
     });
-    return true;
-  } catch (err) {
+    return { success: true };
+  } catch (err: unknown) {
     console.error("[setSubscriptionTierAction] Error:", err);
-    throw err; // Re-throw agar frontend mendapat pesan error asli
+    return { error: err instanceof Error ? err.message : String(err) };
   }
 }
 

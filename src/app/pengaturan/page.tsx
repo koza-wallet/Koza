@@ -34,12 +34,16 @@ export default function PengaturanPage() {
 
   const handleDevTierChange = async (tier: string) => {
     try {
-      await setSubscriptionTierAction(tier);
+      const res = await setSubscriptionTierAction(tier);
+      if (res?.error) {
+        alert(`Gagal mengubah tier:\n${res.error}`);
+        return;
+      }
       setDbTier(tier);
       alert(`Tier berhasil diubah ke ${tier}`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      alert(`Gagal mengubah tier:\n${msg}`);
+      alert(`Gagal memanggil fungsi:\n${msg}`);
     }
   };
 
