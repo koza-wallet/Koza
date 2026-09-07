@@ -61,12 +61,7 @@ export default function ProfilPage() {
   
   const isPremiumOrDev = dbSubscriptionTier === "PREMIUM" || dbSubscriptionTier === "DEVELOPER" || dbSubscriptionTier === "PRO";
 
-  function handleResetToDefault() {
-    const confirmed = window.confirm(
-      "Reset semua saldo dompet & riwayat transaksi ke data awal (dummy)? Perubahan yang sudah Anda catat akan hilang dan tidak bisa dikembalikan."
-    );
-    if (confirmed) resetToDefault();
-  }
+
 
   function handleExport() {
     const csv = transactionsToCsv(transactions, wallets);
@@ -441,24 +436,7 @@ export default function ProfilPage() {
             </div>
           </section>
 
-
           <div className="pt-space-xs space-y-space-md">
-            <button
-              type="button"
-              onClick={() => signOut()}
-              className="w-full bg-error-container text-on-error-container hover:bg-error/20 font-label-lg text-label-lg py-3.5 px-space-md rounded-xl flex items-center justify-center gap-space-xs transition-all active:scale-[0.99] shadow-sm"
-            >
-              <span className="material-symbols-outlined text-[20px]">logout</span>
-              <span>Keluar dari Akun</span>
-            </button>
-            <button
-              type="button"
-              onClick={handleResetToDefault}
-              className="w-full bg-surface-container-low text-on-surface-variant hover:bg-surface-container font-label-lg text-label-lg py-3.5 px-space-md rounded-xl flex items-center justify-center gap-space-xs transition-all active:scale-[0.99]"
-            >
-              <span className="material-symbols-outlined text-[20px]">restart_alt</span>
-              <span>Reset ke Data Awal</span>
-            </button>
             <p className="text-center font-label-caps text-label-caps text-on-surface-variant tracking-wider">
               Versi Aplikasi 2.4.1 • Dompetku Studio
             </p>

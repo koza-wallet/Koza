@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { getUserProfileAction, setSubscriptionTierAction } from "@/actions/finance";
-import { useSession } from "@/lib/supabase-auth";
+import { useSession, signOut } from "@/lib/supabase-auth";
+import { useFinance } from "@/lib/finance-context";
 
 export default function PengaturanPage() {
   const router = useRouter();
@@ -12,6 +13,15 @@ export default function PengaturanPage() {
   const [darkMode, setDarkMode] = useState(true);
   const [dbUserEmail, setDbUserEmail] = useState("");
   const [dbTier, setDbTier] = useState("FREE");
+  
+  const { resetToDefault } = useFinance();
+
+  function handleResetToDefault() {
+    const confirmed = window.confirm(
+      "Reset semua saldo dompet & riwayat transaksi ke data awal (dummy)? Perubahan yang sudah Anda catat akan hilang dan tidak bisa dikembalikan."
+    );
+    if (confirmed) resetToDefault();
+  }
 
   // Set email dari session client-side segera (tidak butuh server action)
   useEffect(() => {
@@ -179,6 +189,40 @@ export default function PengaturanPage() {
                 <div>
                   <h4 className="font-label-lg text-label-lg text-error">Hapus Akun</h4>
                   <p className="font-body-sm text-body-sm text-error/80">Hapus permanen semua data Anda</p>
+                </div>
+              </div>
+            </button>
+            
+            <div className="h-[1px] bg-surface-container mx-space-md" />
+            
+            <button onClick={() => signOut()} className="w-full flex items-center justify-between p-space-md hover:bg-error-container/20 cursor-pointer transition-colors group text-left">
+              <div className="flex items-center gap-space-md">
+                <div className="w-10 h-10 rounded-full bg-error/10 text-error flex items-center justify-center">
+                  <span className="material-symbols-outlined text-[20px]">logout</span>
+                </div>
+                <div>
+                  <h4 className="font-label-lg text-label-lg text-error">Keluar Akun</h4>
+                  <p className="font-body-sm text-body-sm text-error/80">Keluar dari sesi Anda saat ini</p>
+                </div>
+              </div>
+            </button>
+          </div>
+        </section>
+
+        {/* Data & Preferensi */}
+        <section className="space-y-space-xs mt-8">
+          <h2 className="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider pl-space-xxs">
+            Data Aplikasi
+          </h2>
+          <div className="bg-surface-container-lowest rounded-xl shadow-sm overflow-hidden border border-outline-variant/30">
+            <button onClick={handleResetToDefault} className="w-full flex items-center justify-between p-space-md hover:bg-surface-container-low cursor-pointer transition-colors group text-left">
+              <div className="flex items-center gap-space-md">
+                <div className="w-10 h-10 rounded-full bg-surface-container-low text-on-surface-variant flex items-center justify-center">
+                  <span className="material-symbols-outlined text-[20px]">restart_alt</span>
+                </div>
+                <div>
+                  <h4 className="font-label-lg text-label-lg text-on-surface">Reset ke Data Awal</h4>
+                  <p className="font-body-sm text-body-sm text-on-surface-variant">Kembalikan ke saldo dummy awal</p>
                 </div>
               </div>
             </button>
