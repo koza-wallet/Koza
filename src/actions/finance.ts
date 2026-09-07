@@ -38,11 +38,16 @@ export async function getSessionUser() {
     });
   } else {
     // Selalu sync nama dari Supabase ke DB agar tidak ada nama mock yang tersisa
-    if (dbUser.name !== supabaseName) {
-      dbUser = await prisma.user.update({
-        where: { id: dbUser.id },
-        data: { name: supabaseName }
-      });
+    // Dibungkus try-catch agar tidak menghalangi operasi lain jika sync gagal
+    try {
+      if (dbUser.name !== supabaseName) {
+        dbUser = await prisma.user.update({
+          where: { id: dbUser.id },
+          data: { name: supabaseName }
+        });
+      }
+    } catch (syncErr) {
+      console.error("Name sync failed (non-critical):", syncErr);
     }
   }
   

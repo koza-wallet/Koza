@@ -29,6 +29,11 @@ export default function BerandaPage() {
   const { wallets, transactions, pockets } = useFinance();
   const [currentDate] = useState(() => new Date());
 
+  // Email prefix sebagai fallback cepat — tersedia segera dari session tanpa tunggu DB
+  const emailPrefix = session?.user?.email?.split("@")[0] || "";
+  // Nama yang ditampilkan: prioritas DB → email prefix → "..."
+  const displayName = dbUserName || emailPrefix || "...";
+
   useEffect(() => {
     if (session?.user) {
       getUserProfileAction().then((data) => {
@@ -121,7 +126,7 @@ export default function BerandaPage() {
                 {user?.image ? (
                   <img className="w-full h-full object-cover" alt="" src={user.image} />
                 ) : (
-                  (dbUserName || user?.name || user?.email?.split("@")[0] || "K").charAt(0).toUpperCase()
+                  displayName.charAt(0).toUpperCase()
                 )}
               </div>
               <div className="flex flex-col">
@@ -130,7 +135,7 @@ export default function BerandaPage() {
                   {formatFullDateId(currentDate)}
                 </span>
                 <h2 className="font-headline-md text-headline-md text-on-surface tracking-tight">
-                  Halo, {(dbUserName || user?.name || user?.email?.split("@")[0] || "Kawan").split(" ")[0]}! 👋
+                  Halo, {displayName.split(" ")[0]}! 👋
                 </h2>
               </div>
             </div>
