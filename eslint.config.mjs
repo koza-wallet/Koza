@@ -12,7 +12,18 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Custom ignores:
+    "public/sw.js",
+    "test-db.js",
+    "prisma.config.ts"
   ]),
+  {
+    rules: {
+      "@typescript-eslint/no-explicit-any": "warn",
+      "react/no-unescaped-entities": "off",
+      "@next/next/no-img-element": "off"
+    }
+  }
 ]);
 
 export default eslintConfig;

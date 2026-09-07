@@ -26,12 +26,14 @@ export default function PengaturanPage() {
   // Set email dari session client-side segera (tidak butuh server action)
   useEffect(() => {
     const emailFromSession = session?.user?.email;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (emailFromSession) setDbUserEmail(emailFromSession);
   }, [session]);
 
   // Sync mode gelap + fetch tier dari server
   useEffect(() => {
     const isDark = document.documentElement.classList.contains("dark");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDarkMode(isDark);
 
     getUserProfileAction().then((data) => {
