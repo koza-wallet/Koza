@@ -1,8 +1,16 @@
 import type { Metadata, Viewport } from "next";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { FinanceProvider } from "@/lib/finance-context";
 import { SupabaseProvider } from "@/lib/supabase-auth";
 import "./globals.css";
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
+  variable: "--font-plus-jakarta",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "KoZa",
@@ -28,15 +36,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="id" suppressHydrationWarning>
       <head>
-        {/* Fonts loaded exactly as in the Stitch screen export */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+        {/* Material Symbols Outlined dengan display=swap untuk optimasi render */}
         <link
-          href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap"
-          rel="stylesheet"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap"
           rel="stylesheet"
         />
         <link
@@ -45,8 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body
-        className="bg-surface text-on-surface flex flex-col min-h-screen"
-        style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+        className={`bg-surface text-on-surface flex flex-col min-h-screen ${plusJakartaSans.variable} font-sans`}
       >
         <SupabaseProvider>
           <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
