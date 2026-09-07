@@ -35,8 +35,8 @@ export default function PromoPage() {
 
       {/* 1. The Hook (Attention) */}
       <section className="relative pt-32 pb-24 px-6 min-h-[90vh] flex items-center">
-        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-[#BC0B3B]/10 rounded-full blur-[150px] -z-10" />
-        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-[#006398]/20 rounded-full blur-[120px] -z-10" />
+        <div className="absolute top-0 right-0 w-[300px] md:w-[800px] h-[300px] md:h-[800px] bg-[#BC0B3B]/10 rounded-full blur-[100px] md:blur-[150px] -z-10" />
+        <div className="absolute bottom-0 left-0 w-[250px] md:w-[600px] h-[250px] md:h-[600px] bg-[#006398]/20 rounded-full blur-[80px] md:blur-[120px] -z-10" />
         
         <div className="max-w-4xl mx-auto flex flex-col items-center text-center">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 mb-8 backdrop-blur-sm">
@@ -211,7 +211,7 @@ export default function PromoPage() {
 
               <Link 
                 href="/auth/register"
-                className="w-full py-4 rounded-xl border-2 border-white/20 text-white font-bold text-center hover:bg-white/10 transition-colors inline-block"
+                className="block w-full py-4 rounded-xl border-2 border-white/20 text-white font-bold text-center hover:bg-white/10 transition-colors"
               >
                 Ambil Bulanan
               </Link>
@@ -259,7 +259,7 @@ export default function PromoPage() {
 
               <Link 
                 href="/auth/register"
-                className="w-full py-4 rounded-xl bg-white text-[#006C49] font-black text-lg text-center shadow-lg hover:shadow-2xl hover:scale-[1.02] transition-all active:scale-95 inline-block"
+                className="block w-full py-4 rounded-xl bg-white text-[#006C49] font-black text-lg text-center shadow-lg hover:shadow-2xl hover:scale-[1.02] transition-all active:scale-95"
               >
                 Klaim Diskon Tahunan Sekarang
               </Link>
