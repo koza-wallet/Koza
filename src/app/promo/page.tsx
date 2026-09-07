@@ -51,15 +51,24 @@ export default function PromoPage() {
             </span>
           </h1>
           
-          <p className="text-lg md:text-xl text-white/60 mb-12 max-w-2xl leading-relaxed">
+          <p className="text-lg md:text-xl text-white/60 mb-10 max-w-2xl leading-relaxed">
             Gaji lumayan, gaya hidup biasa saja. Tapi entah kenapa, setiap tanggal 20 saldo sudah menipis. Jika ini terdengar seperti Anda, mohon luangkan 3 menit membaca tulisan ini. Ini bisa menyelamatkan masa depan finansial Anda.
           </p>
+          
+          <div className="mb-16">
+            <Link 
+              href="/auth/register"
+              className="inline-block px-8 py-4 rounded-full bg-white text-[#050B14] font-extrabold hover:bg-white/90 transition-all shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] hover:-translate-y-1"
+            >
+              Coba Koza Gratis
+            </Link>
+          </div>
           
           <Link 
             href="#the-ugly-truth"
             className="group flex flex-col items-center gap-2 text-white/50 hover:text-white transition-colors"
           >
-            <span className="font-label-md text-label-md uppercase tracking-widest text-xs">Temukan Jawabannya</span>
+            <span className="font-label-md text-label-md uppercase tracking-widest text-xs">Atau Temukan Jawabannya</span>
             <span className="material-symbols-outlined text-[32px] animate-bounce">keyboard_arrow_down</span>
           </Link>
         </div>
