@@ -37,8 +37,9 @@ export default function PengaturanPage() {
       await setSubscriptionTierAction(tier);
       setDbTier(tier);
       alert(`Tier berhasil diubah ke ${tier}`);
-    } catch (err) {
-      alert("Gagal mengubah tier");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`Gagal mengubah tier:\n${msg}`);
     }
   };
 

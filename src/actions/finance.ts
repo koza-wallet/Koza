@@ -223,12 +223,17 @@ export async function addWalletMemberAction(walletId: string, emailToInvite: str
 
 // === SUBSCRIPTION ACTIONS ===
 export async function setSubscriptionTierAction(tier: string) {
-  const user = await getSessionUser();
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { subscriptionTier: tier }
-  });
-  return true;
+  try {
+    const user = await getSessionUser();
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { subscriptionTier: tier }
+    });
+    return true;
+  } catch (err) {
+    console.error("[setSubscriptionTierAction] Error:", err);
+    throw err; // Re-throw agar frontend mendapat pesan error asli
+  }
 }
 
 // === FETCH USER PROFILE DARI PRISMA ===
