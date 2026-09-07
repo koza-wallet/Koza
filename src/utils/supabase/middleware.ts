@@ -59,6 +59,7 @@ export async function updateSession(request: NextRequest) {
 
   // Protect routes
   const isAuthRoute = request.nextUrl.pathname.startsWith("/auth");
+  const isPromoRoute = request.nextUrl.pathname.startsWith("/promo");
   const isLoginOrRegister = 
     request.nextUrl.pathname === "/auth/login" || 
     request.nextUrl.pathname === "/auth/register" || 
@@ -72,8 +73,8 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // Jika belum login, redirect ke halaman login (termasuk root "/")
-  if (!user) {
+  // Jika belum login dan bukan di halaman promo, redirect ke halaman login
+  if (!user && !isPromoRoute) {
     return NextResponse.redirect(new URL("/auth/login", request.url));
   }
 

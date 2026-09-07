@@ -74,6 +74,10 @@ export function PaywallModal({ isOpen, onClose, onSuccess }: PaywallModalProps) 
               }`}
             >
               <div className="font-label-md text-label-md text-on-surface-variant mb-1">Bulanan</div>
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <span className="font-label-sm text-label-sm text-on-surface-variant line-through opacity-70">Rp 39.000</span>
+                <span className="text-[10px] bg-error-container text-on-error-container px-1.5 rounded-full font-bold">51% OFF</span>
+              </div>
               <div className="font-title-md text-title-md text-on-surface font-bold">Rp 19.000</div>
               <div className="font-label-sm text-label-sm text-on-surface-variant mt-1">/ bulan</div>
             </button>
@@ -87,9 +91,13 @@ export function PaywallModal({ isOpen, onClose, onSuccess }: PaywallModalProps) 
               }`}
             >
               <div className="absolute top-0 right-0 bg-primary text-on-primary font-label-sm text-label-sm px-2 py-0.5 rounded-bl-lg font-bold">
-                Hemat 34%
+                Paling Hemat
               </div>
               <div className="font-label-md text-label-md text-on-surface-variant mb-1">Tahunan</div>
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <span className="font-label-sm text-label-sm text-on-surface-variant line-through opacity-70">Rp 349.000</span>
+                <span className="text-[10px] bg-[#BC0B3B] text-white px-1.5 rounded-full font-bold">57% OFF</span>
+              </div>
               <div className="font-title-md text-title-md text-on-surface font-bold">Rp 149.000</div>
               <div className="font-label-sm text-label-sm text-on-surface-variant mt-1">/ tahun</div>
             </button>
