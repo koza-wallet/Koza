@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSession, signOut } from "@/lib/supabase-auth";
 import { BottomNav } from "@/components/BottomNav";
 import { downloadCsv, transactionsToCsv } from "@/lib/csv-export";
@@ -9,11 +9,10 @@ import { getHealthScoreLabel } from "@/lib/finance";
 import { formatMonthYearId, getInitials } from "@/lib/format";
 import { useFinance } from "@/lib/finance-context";
 import { currentUser as mockUser } from "@/lib/mock-data";
-import { setSubscriptionTierAction, getUserProfileAction } from "@/actions/finance";
+import { getUserProfileAction, setSubscriptionTierAction, incrementExportCountAction } from "@/actions/finance";
 import { updateUserAvatarAction } from "@/actions/auth";
 import { savePushSubscriptionAction } from "@/actions/notifications";
 import { createClient } from "@/utils/supabase/client";
-import { useRef, useEffect } from "react";
 import { PaywallModal } from "@/components/PaywallModal";
 
 export default function ProfilPage() {
@@ -24,6 +23,7 @@ export default function ProfilPage() {
   const [dbSubscriptionTier, setDbSubscriptionTier] = useState<string | null>(null);
   const [dbUserEmail, setDbUserEmail] = useState<string>("");
   const [dbUserName, setDbUserName] = useState<string>("");
+  const [exportCount, setExportCount] = useState<number>(0);
   const [isUploading, setIsUploading] = useState(false);
   const [isPaywallOpen, setIsPaywallOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -33,6 +33,7 @@ export default function ProfilPage() {
     getUserProfileAction().then((data) => {
       if (data) {
         setDbSubscriptionTier(data.subscriptionTier);
+        setExportCount(data.exportCount || 0);
         setIsReminderOn(data.isReminderOn);
         if (data.email) setDbUserEmail(data.email);
         if (data.name) setDbUserName(data.name);
@@ -61,9 +62,19 @@ export default function ProfilPage() {
   
   const isPremiumOrDev = dbSubscriptionTier === "PREMIUM" || dbSubscriptionTier === "DEVELOPER" || dbSubscriptionTier === "PRO";
 
+  async function handleExport() {
+    if (dbSubscriptionTier === "FREE" && exportCount >= 3) {
+      setIsPaywallOpen(true);
+      return;
+    }
 
+    const res = await incrementExportCountAction();
+    if (res?.error) {
+      setIsPaywallOpen(true);
+      return;
+    }
 
-  function handleExport() {
+    setExportCount(prev => prev + 1);
     const csv = transactionsToCsv(transactions, wallets);
     downloadCsv("koza-riwayat-transaksi.csv", csv);
   }
@@ -287,7 +298,6 @@ export default function ProfilPage() {
             </div>
           </section>
 
-          {/* Banner Upgrade untuk akun FREE */}
           {!isPremiumOrDev && (
             <section className="mb-space-xs -mt-1">
               <button
@@ -356,26 +366,21 @@ export default function ProfilPage() {
               <button
                 type="button"
                 onClick={handleExport}
-                className="w-full text-left flex items-center justify-between p-space-md hover:bg-surface-container-low transition-colors group"
+                className="flex items-center justify-between p-space-md hover:bg-surface-container-low cursor-pointer transition-colors group w-full text-left"
               >
                 <div className="flex items-center gap-space-md min-w-0">
-                  <div className="w-10 h-10 rounded-lg bg-surface-container text-on-surface flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                  <div className="w-10 h-10 rounded-lg bg-primary-container text-on-primary-container flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
                     <span className="material-symbols-outlined text-[20px]">file_download</span>
                   </div>
                   <div className="min-w-0">
-                    <div className="flex items-center gap-space-xs">
-                      <h4 className="font-label-lg text-label-lg text-on-surface">Ekspor Laporan</h4>
-                      <span className="bg-tertiary-fixed text-on-tertiary-fixed font-label-caps text-label-caps px-2 py-0.5 rounded-full">
-                        Baru
-                      </span>
-                    </div>
+                    <h4 className="font-label-lg text-label-lg text-on-surface">Ekspor Data (.CSV)</h4>
                     <p className="font-body-sm text-body-sm text-on-surface-variant truncate">
-                      Unduh pembukuan CSV seluruh riwayat transaksi
+                      {dbSubscriptionTier === "FREE" ? `Batas Ekspor Riwayat: ${Math.max(0, 3 - exportCount)}/3` : "Unduh riwayat ke Excel"}
                     </p>
                   </div>
                 </div>
                 <span className="material-symbols-outlined text-on-surface-variant text-[20px] ml-space-xs">
-                  chevron_right
+                  {dbSubscriptionTier === "FREE" && exportCount >= 3 ? "lock" : "download"}
                 </span>
               </button>
             </div>

@@ -252,10 +252,27 @@ export async function getUserProfileAction() {
 
   return {
     subscriptionTier: tier,
+    exportCount: user.exportCount,
     isReminderOn: user.isReminderOn,
     email: user.email,
     name: user.name || user.email.split("@")[0]
   };
+}
+
+// === EXPORT ACTIONS ===
+export async function incrementExportCountAction() {
+  const user = await getSessionUser();
+  
+  if (user.subscriptionTier === "FREE" && user.exportCount >= 3) {
+    return { error: "LIMIT_REACHED" };
+  }
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { exportCount: { increment: 1 } }
+  });
+
+  return { success: true };
 }
 
 // === DEBT ACTIONS ===

@@ -6,6 +6,9 @@ import { downloadCsv, transactionsToCsv } from "@/lib/csv-export";
 import { useFinance } from "@/lib/finance-context";
 import { getPeriodReport, shiftAnchor, type ReportGranularity } from "@/lib/report";
 import { formatCompactRupiah, formatRupiahAmount } from "@/lib/format";
+import { getUserProfileAction, incrementExportCountAction } from "@/actions/finance";
+import { useEffect } from "react";
+import { PaywallModal } from "@/components/PaywallModal";
 
 
 /** Lowercase, dash-separated, ASCII-only — safe as a filename fragment. */
@@ -44,13 +47,44 @@ export default function LaporanPage() {
   const { transactions, wallets } = useFinance();
   const [granularity, setGranularity] = useState<ReportGranularity>("bulanan");
   const [anchorDate, setAnchorDate] = useState<Date>(() => new Date());
+  
+  const [dbSubscriptionTier, setDbSubscriptionTier] = useState<string | null>(null);
+  const [exportCount, setExportCount] = useState<number>(0);
+  const [isPaywallOpen, setIsPaywallOpen] = useState(false);
+
+  useEffect(() => {
+    getUserProfileAction().then((data) => {
+      if (data) {
+        setDbSubscriptionTier(data.subscriptionTier);
+        setExportCount(data.exportCount || 0);
+      } else {
+        setDbSubscriptionTier("FREE");
+      }
+    }).catch((err) => {
+      console.error(err);
+      setDbSubscriptionTier("FREE");
+    });
+  }, []);
 
   const report = useMemo(
     () => getPeriodReport(transactions, granularity, anchorDate),
     [transactions, granularity, anchorDate]
   );
 
-  function handleDownload() {
+  async function handleDownload() {
+    if (dbSubscriptionTier === "FREE" && exportCount >= 3) {
+      setIsPaywallOpen(true);
+      return;
+    }
+
+    const res = await incrementExportCountAction();
+    if (res?.error) {
+      setIsPaywallOpen(true);
+      return;
+    }
+
+    setExportCount(prev => prev + 1);
+
     const periodTransactions = transactions.filter((t) => {
       const time = new Date(t.timestamp).getTime();
       return time >= report.rangeStart.getTime() && time < report.rangeEnd.getTime();
@@ -146,8 +180,12 @@ export default function LaporanPage() {
               onClick={handleDownload}
               className="flex items-center space-x-space-xxs bg-surface-container-low px-space-md py-space-xs rounded-full text-on-surface-variant hover:text-primary transition-colors shadow-sm"
             >
-              <span className="material-symbols-outlined text-[18px]">file_download</span>
-              <span className="font-label-md text-label-md">Unduh</span>
+              <span className="material-symbols-outlined text-[18px]">
+                {dbSubscriptionTier === "FREE" && exportCount >= 3 ? "lock" : "file_download"}
+              </span>
+              <span className="font-label-md text-label-md">
+                {dbSubscriptionTier === "FREE" && exportCount < 3 ? `Unduh (${3 - exportCount})` : "Unduh"}
+              </span>
             </button>
           </div>
 
@@ -382,6 +420,15 @@ export default function LaporanPage() {
           </div>
         </div>
       </main>
+
+      <PaywallModal 
+        isOpen={isPaywallOpen} 
+        onClose={() => setIsPaywallOpen(false)} 
+        onSuccess={() => {
+          setIsPaywallOpen(false);
+          window.location.reload();
+        }} 
+      />
 
       <BottomNav />
     </>
