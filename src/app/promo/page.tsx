@@ -58,7 +58,7 @@ export default function PromoPage() {
           <div className="mb-16">
             <Link 
               href="/auth/register"
-              className="inline-block px-8 py-4 rounded-full bg-white text-[#050B14] font-extrabold hover:bg-white/90 transition-all shadow-[0_0_20px_rgba(255,255,255,0.2)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] hover:-translate-y-1"
+              className="inline-block px-10 py-4 rounded-full bg-gradient-to-r from-[#FF7A00] to-[#FF9900] text-[#050B14] font-extrabold text-lg uppercase tracking-wide hover:from-[#FF9900] hover:to-[#FFB800] transition-all shadow-[0_0_30px_rgba(255,122,0,0.4)] hover:shadow-[0_0_40px_rgba(255,122,0,0.6)] hover:-translate-y-1 transform duration-300"
             >
               Coba Koza Gratis
             </Link>
