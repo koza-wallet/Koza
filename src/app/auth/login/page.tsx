@@ -44,9 +44,6 @@ function LoginForm() {
         <h2 className="mt-6 text-center font-display text-[32px] font-extrabold tracking-tight text-on-surface">
           Masuk ke Koza
         </h2>
-        <p className="mt-2 text-center font-body-md text-on-surface-variant">
-          Pilih metode masuk yang Anda inginkan
-        </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-margin-screen">
