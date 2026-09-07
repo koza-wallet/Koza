@@ -250,17 +250,6 @@ export async function getUserProfileAction() {
     });
   }
 
-  // Auto-Provisioning: akun developer otomatis mendapat tier DEVELOPER
-  // jika tier masih FREE (belum pernah diubah manual lewat Developer Menu)
-  const devEmails = ["novriekadito@gmail.com", "novriekadito9@gmail.com"];
-  if (devEmails.includes(user.email) && tier === "FREE") {
-    tier = "DEVELOPER";
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { subscriptionTier: "DEVELOPER" }
-    });
-  }
-
   return {
     subscriptionTier: tier,
     isReminderOn: user.isReminderOn,
