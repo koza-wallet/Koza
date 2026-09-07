@@ -39,12 +39,13 @@ function LoginForm() {
 
   const handleGoogleLogin = async () => {
     const supabase = createClient();
-    const APP_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+    // Gunakan origin URL saat ini agar cocok di semua environment (localhost & Vercel)
+    const redirectTo = `${window.location.origin}/auth/callback`;
     
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${APP_URL}/auth/callback`,
+        redirectTo,
       },
     });
   };
