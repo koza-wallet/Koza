@@ -72,8 +72,8 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
-  // Jika belum login dan mencoba mengakses rute yang dilindungi
-  if (!user && request.nextUrl.pathname !== "/") {
+  // Jika belum login, redirect ke halaman login (termasuk root "/")
+  if (!user) {
     return NextResponse.redirect(new URL("/auth/login", request.url));
   }
 
