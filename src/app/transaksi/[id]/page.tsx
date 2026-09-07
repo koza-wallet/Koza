@@ -226,32 +226,7 @@ function DetailTransaksiContent({
               {walletLabel !== "Tidak diketahui" && <span className="w-2 h-2 rounded-full bg-primary" />}
             </div>
           </div>
-          <div className="flex items-center justify-between gap-space-sm">
-            <div className="flex items-center gap-space-xs text-on-surface-variant">
-              <div className="w-8 h-8 rounded-lg bg-surface-container-low flex items-center justify-center">
-                <span className="material-symbols-outlined text-[18px]">tag</span>
-              </div>
-              <span className="font-body-md text-body-md">ID Referensi</span>
-            </div>
-            <button
-              type="button"
-              onClick={onCopyId}
-              title="Salin ID Referensi"
-              className="flex items-center gap-1.5 bg-surface-container-low hover:bg-surface-container px-space-xs py-1.5 rounded-lg transition-colors"
-            >
-              <span className="font-label-md text-label-md text-on-surface font-mono">{transaction.id}</span>
-              <span className="material-symbols-outlined text-[15px] text-on-surface-variant">content_copy</span>
-            </button>
-          </div>
-          <div className="flex items-center justify-between gap-space-sm">
-            <div className="flex items-center gap-space-xs text-on-surface-variant">
-              <div className="w-8 h-8 rounded-lg bg-surface-container-low flex items-center justify-center">
-                <span className="material-symbols-outlined text-[18px]">qr_code_scanner</span>
-              </div>
-              <span className="font-body-md text-body-md">Metode Bayar</span>
-            </div>
-            <span className="font-label-md text-label-md text-on-surface">{transaction.paymentMethod}</span>
-          </div>
+
 
           {transaction.note && (
             <div className="bg-surface-container-low rounded-xl p-space-sm space-y-1">
@@ -264,39 +239,11 @@ function DetailTransaksiContent({
           )}
         </section>
 
-        {/* Rincian Pembayaran Card */}
-        <section className="bg-surface-container-lowest rounded-xl p-space-lg shadow-sm space-y-space-sm">
-          <h3 className="font-label-lg text-label-lg text-on-surface pb-space-xs border-b border-surface-container">
-            Rincian Pembayaran
-          </h3>
-          <div className="flex justify-between items-center">
-            <span className="font-body-md text-body-md text-on-surface-variant">Nominal Transaksi</span>
-            <span className="font-label-md text-label-md text-on-surface">
-              Rp {formatRupiahAmount(transaction.amount)}
-            </span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="font-body-md text-body-md text-on-surface-variant">Biaya Admin</span>
-            <span className="font-label-md text-label-md text-primary">Rp 0 (Gratis)</span>
-          </div>
-          <div className="pt-space-xs mt-space-xxs border-t border-surface-container flex justify-between items-center">
-            <span className="font-label-lg text-label-lg text-on-surface">Total</span>
-            <span className={`font-headline-sm text-headline-sm ${amountColor}`}>
-              {sign}Rp {formatRupiahAmount(transaction.amount)}
-            </span>
-          </div>
-        </section>
+
 
         {/* Tombol Aksi */}
         <div className="space-y-space-xs pt-space-xxs">
-          <button
-            type="button"
-            onClick={onDownload}
-            className="w-full h-12 rounded-xl bg-surface-container-lowest shadow-sm text-on-surface flex items-center justify-center gap-space-xs font-label-lg text-label-lg hover:bg-surface-container-low transition-all active:scale-[0.99]"
-          >
-            <span className="material-symbols-outlined text-[20px] text-primary">download</span>
-            <span>Unduh Resi / Bukti Pembayaran</span>
-          </button>
+
           <div className="grid grid-cols-2 gap-space-xs">
             <button
               type="button"
