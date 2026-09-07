@@ -45,9 +45,9 @@ function LoginForm() {
         <Image
           src="/image2.png"
           alt="Koza Logo"
-          width={180}
-          height={180}
-          className="object-contain"
+          width={280}
+          height={280}
+          className="object-contain -mb-4"
           priority
         />
         <h2 className="mt-2 text-center font-display text-[28px] font-extrabold tracking-tight text-on-surface">
