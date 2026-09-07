@@ -16,10 +16,10 @@ export async function GET(request: Request) {
     // Keamanan Cron: Pastikan ini dipanggil oleh Vercel Cron atau script internal (bisa dicek lewat Header)
     // Untuk pengembangan, kita izinkan pemanggilan langsung (atau gunakan secret token jika di produksi).
     
-    // Cari semua pelanggan PRO yang mengaktifkan pengingat dan memiliki subscription
-    const proUsers = await prisma.user.findMany({
+    // Cari semua pelanggan PREMIUM yang mengaktifkan pengingat dan memiliki subscription
+    const usersToRemind = await prisma.user.findMany({
       where: {
-        subscriptionTier: "PRO",
+        subscriptionTier: "PREMIUM",
         isReminderOn: true,
         pushSubscription: { not: null }
       }
@@ -34,7 +34,7 @@ export async function GET(request: Request) {
       url: "/transaksi/tambah"
     });
 
-    for (const user of proUsers) {
+    for (const user of usersToRemind) {
       if (!user.pushSubscription) continue;
       
       try {
@@ -58,7 +58,7 @@ export async function GET(request: Request) {
       success: true,
       sent: successCount,
       failed: failCount,
-      message: `Sent ${successCount} reminders to PRO users.`
+      message: `Sent ${successCount} reminders to PREMIUM users.`
     });
   } catch (error: any) {
     console.error("Cron Error:", error);

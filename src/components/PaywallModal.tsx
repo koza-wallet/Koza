@@ -15,12 +15,7 @@ export function PaywallModal({ isOpen, onClose, onSuccess }: PaywallModalProps) 
   if (!isOpen) return null;
 
   const handlePayment = () => {
-    setIsProcessing(true);
-    // Simulate payment gateway redirect/processing
-    setTimeout(() => {
-      setIsProcessing(false);
-      onSuccess();
-    }, 2000);
+    alert("Mohon maaf, sistem pembayaran sedang mengalami gangguan (Error). Silakan coba lagi nanti.");
   };
 
   return (

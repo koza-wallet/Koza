@@ -321,7 +321,7 @@ export default function KategoriTransaksiPage() {
               type="button"
               onClick={() => {
                 if (subscriptionTier === "FREE") {
-                  showToast("🚀 Upgrade ke PRO untuk membuat Kategori Kustom!");
+                  showToast("🚀 Upgrade ke PREMIUM untuk membuat Kategori Kustom!");
                 } else {
                   setIsModalOpen(true);
                 }

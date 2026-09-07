@@ -57,7 +57,7 @@ export default function KelolaDompetPage() {
     // Logika PAYWALL: Pengguna FREE maksimal 2 Dompet
     const tier = (session?.user as any)?.subscriptionTier || "FREE";
     if (tier === "FREE" && wallets.length >= 2) {
-      window.alert("🚀 Upgrade ke PRO untuk membuat lebih dari 2 dompet!");
+      window.alert("🚀 Upgrade ke PREMIUM untuk membuat lebih dari 2 dompet!");
       return;
     }
 

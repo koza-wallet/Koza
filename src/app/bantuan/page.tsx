@@ -10,8 +10,8 @@ const faqs = [
     a: "Masuk ke menu Profil, lalu pilih 'Daftar Dompet Manual' di bagian Kelola Keuangan. Klik tombol 'Tambah Dompet' dan isi detail dompet Anda.",
   },
   {
-    q: "Apa perbedaan akun Personal (FREE) dan PRO?",
-    a: "Akun Personal memiliki fitur dasar pencatatan tanpa batas. Akun PRO memiliki akses fitur premium seperti Pengingat Harian (Push Notifications) dan fitur analitik lanjutan yang sedang kami kembangkan.",
+    q: "Apa perbedaan akun Personal (FREE) dan PREMIUM?",
+    a: "Akun Personal memiliki fitur dasar pencatatan tanpa batas. Akun PREMIUM memiliki akses fitur eksklusif seperti Pengingat Harian (Push Notifications) dan fitur analitik lanjutan yang sedang kami kembangkan.",
   },
   {
     q: "Apakah data saya aman?",
