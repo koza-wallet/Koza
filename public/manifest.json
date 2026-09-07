@@ -4,8 +4,8 @@
   "description": "Mencatat Rapi, Kocek Terjaga",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#10b981",
+  "background_color": "#F8F9FA",
+  "theme_color": "#20B2AA",
   "icons": [
     {
       "src": "/icon-192x192.png",

@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Suspense } from "react";
+import Image from "next/image";
 
 function LoginForm() {
   const router = useRouter();
@@ -40,8 +41,16 @@ function LoginForm() {
 
   return (
     <main className="min-h-screen bg-surface flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md px-margin-screen">
-        <h2 className="mt-6 text-center font-display text-[32px] font-extrabold tracking-tight text-on-surface">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md px-margin-screen flex flex-col items-center">
+        <Image
+          src="/image2.png"
+          alt="Koza Logo"
+          width={180}
+          height={180}
+          className="object-contain"
+          priority
+        />
+        <h2 className="mt-2 text-center font-display text-[28px] font-extrabold tracking-tight text-on-surface">
           Masuk ke Koza
         </h2>
       </div>
