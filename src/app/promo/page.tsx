@@ -266,9 +266,17 @@ export default function PromoPage() {
             </div>
           </div>
           
-          <p className="text-center text-white/40 mt-8 text-sm max-w-lg mx-auto">
-            Masih ragu? Anda bisa mendaftar gratis sekarang juga. Tidak ada kewajiban kartu kredit. Upgrade kapan saja saat Anda siap.
-          </p>
+          <div className="mt-12 flex flex-col items-center">
+            <p className="text-center text-white/40 mb-4 text-sm max-w-lg mx-auto">
+              Masih ragu? Anda bisa mendaftar gratis sekarang juga. Tidak ada kewajiban kartu kredit. Upgrade kapan saja saat Anda siap.
+            </p>
+            <Link 
+              href="/auth/register"
+              className="px-8 py-3 rounded-full border border-white/20 text-white font-bold hover:bg-white/10 transition-colors shadow-sm"
+            >
+              Coba Koza Gratis
+            </Link>
+          </div>
         </div>
       </section>
 
