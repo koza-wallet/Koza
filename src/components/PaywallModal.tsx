@@ -10,7 +10,7 @@ interface PaywallModalProps {
 
 export function PaywallModal({ isOpen, onClose, onSuccess }: PaywallModalProps) {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<"monthly" | "yearly">("yearly");
+  const [selectedPlan, setSelectedPlan] = useState<"monthly" | "yearly" | "lifetime">("lifetime");
 
   if (!isOpen) return null;
 
@@ -64,7 +64,7 @@ export function PaywallModal({ isOpen, onClose, onSuccess }: PaywallModalProps) 
             </li>
           </ul>
 
-          <div className="grid grid-cols-2 gap-3 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
             <button
               onClick={() => setSelectedPlan("monthly")}
               className={`p-3 rounded-xl border-2 text-left transition-all relative ${
@@ -74,32 +74,37 @@ export function PaywallModal({ isOpen, onClose, onSuccess }: PaywallModalProps) 
               }`}
             >
               <div className="font-label-md text-label-md text-on-surface-variant mb-1">Bulanan</div>
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <span className="font-label-sm text-label-sm text-on-surface-variant line-through opacity-70">Rp 33.000</span>
-                <span className="text-[10px] bg-error-container text-on-error-container px-1.5 rounded-full font-bold">42% OFF</span>
-              </div>
-              <div className="font-title-md text-title-md text-on-surface font-bold">Rp 19.000</div>
+              <div className="font-title-md text-title-md text-on-surface font-bold">Rp 19rb</div>
               <div className="font-label-sm text-label-sm text-on-surface-variant mt-1">/ bulan</div>
             </button>
 
             <button
               onClick={() => setSelectedPlan("yearly")}
-              className={`p-3 rounded-xl border-2 text-left transition-all relative overflow-hidden ${
+              className={`p-3 rounded-xl border-2 text-left transition-all relative ${
                 selectedPlan === "yearly" 
                   ? "border-primary bg-primary-container/20" 
                   : "border-outline-variant bg-surface"
               }`}
             >
-              <div className="absolute top-0 right-0 bg-primary text-on-primary font-label-sm text-label-sm px-2 py-0.5 rounded-bl-lg font-bold">
-                Paling Hemat
-              </div>
               <div className="font-label-md text-label-md text-on-surface-variant mb-1">Tahunan</div>
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <span className="font-label-sm text-label-sm text-on-surface-variant line-through opacity-70">Rp 350.000</span>
-                <span className="text-[10px] bg-[#BC0B3B] text-white px-1.5 rounded-full font-bold">57% OFF</span>
-              </div>
-              <div className="font-title-md text-title-md text-on-surface font-bold">Rp 149.000</div>
+              <div className="font-title-md text-title-md text-on-surface font-bold">Rp 149rb</div>
               <div className="font-label-sm text-label-sm text-on-surface-variant mt-1">/ tahun</div>
+            </button>
+            
+            <button
+              onClick={() => setSelectedPlan("lifetime")}
+              className={`p-3 rounded-xl border-2 text-left transition-all relative overflow-hidden ${
+                selectedPlan === "lifetime" 
+                  ? "border-primary bg-primary-container/20" 
+                  : "border-outline-variant bg-surface"
+              }`}
+            >
+              <div className="absolute top-0 right-0 bg-primary text-on-primary font-label-sm text-label-sm px-2 py-0.5 rounded-bl-lg font-bold text-[10px]">
+                Best Deal
+              </div>
+              <div className="font-label-md text-label-md text-on-surface-variant mb-1">Lifetime</div>
+              <div className="font-title-md text-title-md text-on-surface font-bold">Rp 199rb</div>
+              <div className="font-label-sm text-label-sm text-on-surface-variant mt-1">Selamanya</div>
             </button>
           </div>
 

@@ -44,3 +44,12 @@ yarn-error.log*
 next-env.d.ts
 dev.db
 .env.local
+
+# custom agents skills
+.agents/
+
+# Video Promosi / Scripts
+*100*ide*koza*creative*
+100_ide_koza_creative*
+*100*Ide*Koza*
+

@@ -55,13 +55,17 @@ export default function PromoPage() {
             Gaji lumayan, gaya hidup biasa saja. Tapi entah kenapa, setiap tanggal 20 saldo sudah menipis. Jika ini terdengar seperti Anda, mohon luangkan 3 menit membaca tulisan ini. Ini bisa menyelamatkan masa depan finansial Anda.
           </p>
           
-          <div className="mb-16">
+          <div className="mb-16 flex flex-col items-center">
             <Link 
               href="/auth/register"
-              className="inline-block px-10 py-4 rounded-full bg-gradient-to-r from-[#FF7A00] to-[#FF9900] text-[#050B14] font-extrabold text-lg uppercase tracking-wide hover:from-[#FF9900] hover:to-[#FFB800] transition-all shadow-[0_0_30px_rgba(255,122,0,0.4)] hover:shadow-[0_0_40px_rgba(255,122,0,0.6)] hover:-translate-y-1 transform duration-300"
+              className="inline-block px-10 py-4 rounded-full bg-gradient-to-r from-[#FF7A00] to-[#FF9900] text-[#050B14] font-extrabold text-lg uppercase tracking-wide hover:from-[#FF9900] hover:to-[#FFB800] transition-all shadow-[0_0_30px_rgba(255,122,0,0.4)] hover:shadow-[0_0_40px_rgba(255,122,0,0.6)] hover:-translate-y-1 transform duration-300 mb-4"
             >
               Coba Koza Gratis
             </Link>
+            <div className="flex items-center gap-2 text-white/60 bg-white/5 border border-white/10 px-4 py-2 rounded-full text-sm mt-2 shadow-sm backdrop-blur-md">
+              <span className="material-symbols-outlined text-[18px] text-[#10B981]">lock</span>
+              <span><strong>Private-by-Design.</strong> Data dikunci lokal di HP Anda, tidak disedot ke server kami.</span>
+            </div>
           </div>
           
           <Link 
@@ -147,15 +151,23 @@ export default function PromoPage() {
       {/* 4. Value Stack (Features) */}
       <section className="py-24 px-6 bg-surface-container-lowest text-on-surface">
         <div className="max-w-5xl mx-auto">
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 gap-8">
             <div className="p-8 rounded-3xl bg-surface hover:-translate-y-2 transition-transform duration-300 shadow-sm border border-outline-variant/30">
               <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-6">
                 <span className="material-symbols-outlined text-[32px]">bolt</span>
               </div>
-              <h3 className="text-xl font-bold mb-3">Catat Dalam 3 Detik</h3>
-              <p className="text-on-surface-variant leading-relaxed">Antarmuka (UI) kami didesain agar Anda bisa mencatat pengeluaran di kasir minimarket sebelum Anda menerima kembalian.</p>
+              <h3 className="text-xl font-bold mb-3">Zero Loading Screen</h3>
+              <p className="text-on-surface-variant leading-relaxed">Dibangun dengan arsitektur <em>Offline-First PWA</em>, Anda bisa mencatat transaksi seketika tanpa koneksi internet. Lebih cepat dari mengeluarkan dompet.</p>
             </div>
             
+            <div className="p-8 rounded-3xl bg-surface hover:-translate-y-2 transition-transform duration-300 shadow-sm border border-outline-variant/30">
+              <div className="w-14 h-14 rounded-2xl bg-[#006398]/10 flex items-center justify-center text-[#006398] mb-6">
+                <span className="material-symbols-outlined text-[32px]">verified</span>
+              </div>
+              <h3 className="text-xl font-bold mb-3">Garansi Saldo Akurat 100%</h3>
+              <p className="text-on-surface-variant leading-relaxed">Bebas dari penyakit "saldo selisih". Berkat mesin <em>Two-Step Reversal</em> kami, ubah/hapus transaksi sesuka hati—saldo akhir pasti akurat hingga perak terakhir.</p>
+            </div>
+
             <div className="p-8 rounded-3xl bg-surface hover:-translate-y-2 transition-transform duration-300 shadow-sm border border-outline-variant/30">
               <div className="w-14 h-14 rounded-2xl bg-error/10 flex items-center justify-center text-error mb-6">
                 <span className="material-symbols-outlined text-[32px]">notifications_active</span>
@@ -165,11 +177,70 @@ export default function PromoPage() {
             </div>
             
             <div className="p-8 rounded-3xl bg-surface hover:-translate-y-2 transition-transform duration-300 shadow-sm border border-outline-variant/30">
-              <div className="w-14 h-14 rounded-2xl bg-[#006398]/10 flex items-center justify-center text-[#006398] mb-6">
+              <div className="w-14 h-14 rounded-2xl bg-[#FF9900]/10 flex items-center justify-center text-[#FF9900] mb-6">
                 <span className="material-symbols-outlined text-[32px]">health_and_safety</span>
               </div>
               <h3 className="text-xl font-bold mb-3">Skor Kesehatan Finansial</h3>
               <p className="text-on-surface-variant leading-relaxed">Koza menganalisis pola pengeluaran Anda dan memberikan nilai 0-100 secara otomatis. Anda tahu persis kapan harus mengerem.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+      {/* 4.2. Us vs Them */}
+      <section className="py-24 px-6 bg-gradient-to-b from-surface-container-lowest to-[#050B14]">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-6 text-white">Mengapa Pengguna Beralih ke Koza?</h2>
+            <p className="text-xl text-white/60 max-w-2xl mx-auto">Tinggalkan aplikasi pencatat keuangan yang membuang waktu, baterai, dan mengintai data pribadi Anda.</p>
+          </div>
+          
+          <div className="overflow-x-auto pb-4">
+            <div className="min-w-[700px] bg-white/5 backdrop-blur-md rounded-3xl shadow-2xl overflow-hidden border border-white/10">
+              <div className="grid grid-cols-2 divide-x divide-white/10">
+                <div className="p-8 bg-error/5">
+                  <h3 className="text-xl font-bold text-error mb-6 flex items-center gap-2"><span className="material-symbols-outlined">cancel</span>Aplikasi Lama Anda</h3>
+                  <ul className="space-y-6">
+                    <li>
+                      <strong className="block text-white/90 mb-1">Ketergantungan Sinyal</strong>
+                      <span className="text-white/60 text-sm">Mau catat beli kopi harus nunggu loading server.</span>
+                    </li>
+                    <li>
+                      <strong className="block text-white/90 mb-1">Bug Saldo Bocor</strong>
+                      <span className="text-white/60 text-sm">Transaksi dihapus, tapi total saldo dompet tak ikut berubah.</span>
+                    </li>
+                    <li>
+                      <strong className="block text-white/90 mb-1">Baterai Bocor & HP Panas</strong>
+                      <span className="text-white/60 text-sm">Aplikasi membengkak bawa library raksasa & iklan.</span>
+                    </li>
+                    <li>
+                      <strong className="block text-white/90 mb-1">Data Anda Dimata-matai</strong>
+                      <span className="text-white/60 text-sm">Pengeluaran dianalisis di server perusahaan asing.</span>
+                    </li>
+                  </ul>
+                </div>
+                
+                <div className="p-8 bg-primary/10">
+                  <h3 className="text-xl font-bold text-primary mb-6 flex items-center gap-2"><span className="material-symbols-outlined">check_circle</span>Bersama Koza</h3>
+                  <ul className="space-y-6">
+                    <li>
+                      <strong className="block text-white/90 mb-1">Offline-First PWA</strong>
+                      <span className="text-white/60 text-sm">Catat seketika (0-latency), walau di basement tanpa sinyal.</span>
+                    </li>
+                    <li>
+                      <strong className="block text-white/90 mb-1">Garansi Presisi 100%</strong>
+                      <span className="text-white/60 text-sm">Arsitektur canggih menjamin hitungan 100% akurat selalu.</span>
+                    </li>
+                    <li>
+                      <strong className="block text-white/90 mb-1">Ekstra Ramping (No Bloatware)</strong>
+                      <span className="text-white/60 text-sm">Murni SVG & native. Irit baterai, memori HP lega.</span>
+                    </li>
+                    <li>
+                      <strong className="block text-white/90 mb-1">Private-by-Design</strong>
+                      <span className="text-white/60 text-sm">Seluruh histori terkunci lokal di storage HP Anda sendiri.</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -263,7 +334,7 @@ export default function PromoPage() {
 
       {/* 5. The Irresistible Offer (Pricing) */}
       <section className="py-32 px-6 relative bg-[#050B14]">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-5xl font-extrabold mb-6 tracking-tight text-white">Investasi Terkecil Untuk<br/>Perubahan Terbesar.</h2>
             <p className="text-xl text-white/60 max-w-2xl mx-auto">
@@ -271,7 +342,7 @@ export default function PromoPage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 relative z-10">
+          <div className="grid lg:grid-cols-3 md:grid-cols-2 gap-8 relative z-10">
             {/* Monthly Plan */}
             <div className="bg-white/5 backdrop-blur-xl rounded-[32px] p-8 border border-white/10 hover:border-white/20 transition-colors flex flex-col">
               <div className="mb-8">
@@ -360,6 +431,57 @@ export default function PromoPage() {
                 Klaim Diskon Tahunan Sekarang
               </Link>
               <p className="text-center text-xs text-white/70 mt-4 flex items-center justify-center gap-1 font-medium bg-black/10 py-1.5 px-3 rounded-full w-max mx-auto">
+                <span className="material-symbols-outlined text-[14px]">verified_user</span>
+                Garansi 7 Hari Uang Kembali.
+              </p>
+            </div>
+
+            {/* Lifetime Plan */}
+            <div className="bg-gradient-to-br from-[#10B981] to-[#047857] rounded-[32px] p-8 border border-white/20 shadow-[0_0_50px_rgba(16,185,129,0.3)] relative flex flex-col transform md:-translate-y-2 lg:-translate-y-6">
+              <div className="absolute -top-4 right-8">
+                <span className="bg-[#FF9900] text-[#050B14] px-6 py-2 rounded-full font-extrabold text-sm tracking-widest shadow-xl">
+                  BEST DEAL
+                </span>
+              </div>
+
+              <div className="mb-8 mt-2">
+                <h3 className="text-2xl font-bold text-white mb-2">Paket Lifetime</h3>
+                <p className="text-white/90 font-medium">Bayar sekali, rasakan manfaatnya seumur hidup.</p>
+              </div>
+              
+              <div className="mb-8">
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-xl font-medium text-white/70 line-through">Rp 990.000</span>
+                  <span className="px-3 py-1 rounded-full bg-[#050B14] text-white font-bold text-xs shadow-md">Diskon 80%</span>
+                </div>
+                <div className="flex items-baseline gap-1 text-white">
+                  <span className="text-5xl font-extrabold">199rb</span>
+                </div>
+                <p className="text-sm font-bold mt-3 text-white bg-black/30 px-3 py-1.5 rounded-lg inline-block">Cuma beda 50rb dari tahunan!</p>
+              </div>
+
+              <ul className="space-y-4 mb-10 flex-1 text-white font-medium">
+                <li className="flex gap-3 items-center">
+                  <span className="material-symbols-outlined text-[#FF9900]">check_circle</span>
+                  <span>Semua fitur Tahunan seumur hidup</span>
+                </li>
+                <li className="flex gap-3 items-center">
+                  <span className="material-symbols-outlined text-[#FF9900]">star</span>
+                  <span>Gratis semua update fitur masa depan</span>
+                </li>
+                <li className="flex gap-3 items-center">
+                  <span className="material-symbols-outlined text-[#FF9900]">workspace_premium</span>
+                  <span>Tidak perlu langganan bulanan lagi</span>
+                </li>
+              </ul>
+
+              <Link 
+                href="/auth/register"
+                className="block w-full py-4 rounded-xl bg-[#050B14] text-white font-black text-lg text-center shadow-lg hover:shadow-2xl hover:scale-[1.02] transition-all active:scale-95 border border-white/10 hover:border-[#FF9900]"
+              >
+                Ambil Akses Seumur Hidup
+              </Link>
+              <p className="text-center text-xs text-white/80 mt-4 flex items-center justify-center gap-1 font-medium bg-black/20 py-1.5 px-3 rounded-full w-max mx-auto">
                 <span className="material-symbols-outlined text-[14px]">verified_user</span>
                 Garansi 7 Hari Uang Kembali.
               </p>
