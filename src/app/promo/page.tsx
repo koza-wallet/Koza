@@ -174,6 +174,92 @@ export default function PromoPage() {
         </div>
       </section>
 
+      {/* 4.5. Why Premium? (Loss Aversion & Mental Accounting) */}
+      <section className="py-24 px-6 bg-[#03060A] text-white border-y border-white/5 relative overflow-hidden">
+        <div className="absolute top-0 right-1/4 w-[400px] h-[400px] bg-[#10B981]/10 rounded-full blur-[120px] pointer-events-none" />
+        
+        <div className="max-w-4xl mx-auto relative z-10">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-5xl font-extrabold mb-6 tracking-tight text-white">Berhenti Membuang Uang Anda Dalam Gelap.</h2>
+            <p className="text-xl text-white/60 max-w-2xl mx-auto leading-relaxed">
+              Langganan Koza Premium bukan sekadar aplikasi, ini adalah <strong className="text-white">Asisten Keuangan Pribadi</strong> yang bekerja 24/7 untuk memastikan Anda tidak pernah lagi kehabisan uang sebelum tanggal 20.
+            </p>
+          </div>
+
+          {/* Comparison Table */}
+          <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl overflow-hidden mb-12 shadow-2xl">
+            <div className="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-white/10">
+              
+              {/* Without Premium (Loss) */}
+              <div className="p-8 md:p-10 bg-error/5 relative overflow-hidden group">
+                <div className="absolute top-0 left-0 w-1 h-full bg-error" />
+                <h3 className="text-2xl font-bold mb-6 flex items-center gap-3 text-white/90">
+                  <span className="w-10 h-10 rounded-full bg-error/20 text-error flex items-center justify-center material-symbols-outlined">close</span>
+                  Tanpa Premium
+                </h3>
+                <ul className="space-y-6 text-white/70">
+                  <li>
+                    <span className="block font-bold text-white mb-1">Radar Bocor Halus</span>
+                    Anda tidak sadar uang habis perlahan untuk hal sepele.
+                  </li>
+                  <li>
+                    <span className="block font-bold text-white mb-1">Pengingat Biasa</span>
+                    Mudah lupa mencatat, akhirnya catatan keuangan kembali kacau.
+                  </li>
+                  <li>
+                    <span className="block font-bold text-white mb-1">Tanpa Batas Anggaran</span>
+                    Sangat mudah tergoda checkout barang yang tidak perlu.
+                  </li>
+                  <li>
+                    <span className="block font-bold text-white mb-1">Buta Finansial</span>
+                    Hanya bisa meratapi saldo akhir yang menyedihkan tanpa tahu detailnya.
+                  </li>
+                </ul>
+              </div>
+
+              {/* With Premium (Gain) */}
+              <div className="p-8 md:p-10 bg-[#10B981]/5 relative overflow-hidden group">
+                <div className="absolute top-0 left-0 w-1 h-full bg-[#10B981]" />
+                <h3 className="text-2xl font-bold mb-6 flex items-center gap-3 text-white">
+                  <span className="w-10 h-10 rounded-full bg-[#10B981]/20 text-[#10B981] flex items-center justify-center material-symbols-outlined">diamond</span>
+                  Koza Premium
+                </h3>
+                <ul className="space-y-6 text-white/80">
+                  <li>
+                    <span className="block font-bold text-[#10B981] mb-1">AI Deteksi Bocor Halus</span>
+                    Otomatis mendeteksi &amp; memblokir kebiasaan boros Anda sebelum terlambat.
+                  </li>
+                  <li>
+                    <span className="block font-bold text-[#10B981] mb-1">Pengingat "Meneror"</span>
+                    Asisten kami akan mengingatkan secara agresif sampai Anda disiplin.
+                  </li>
+                  <li>
+                    <span className="block font-bold text-[#10B981] mb-1">Mode Anggaran Ketat</span>
+                    Peringatan merah menyala jika Anda hampir melewati batas jajan bulanan.
+                  </li>
+                  <li>
+                    <span className="block font-bold text-[#10B981] mb-1">Visualisasi Mendalam</span>
+                    Tahu persis ke mana hilangnya setiap Rupiah dengan grafik visual ciamik.
+                  </li>
+                </ul>
+              </div>
+
+            </div>
+          </div>
+
+          {/* Mental Accounting Box */}
+          <div className="bg-gradient-to-r from-[#FF7A00]/20 to-[#FF9900]/10 border border-[#FF7A00]/30 rounded-2xl p-8 md:p-10 text-center max-w-3xl mx-auto shadow-[0_0_40px_rgba(255,122,0,0.1)]">
+            <p className="text-[#FF9900] font-bold tracking-widest uppercase text-sm mb-4">Hanya Rp 19.000 / Bulan (Lebih murah dari segelas kopi!)</p>
+            <p className="text-xl md:text-2xl text-white font-medium leading-relaxed mb-6">
+              &quot;Bayangkan: Anda mengorbankan 1 gelas kopi bulan ini, untuk menyelamatkan ratusan ribu rupiah dari kebocoran tak kasat mata di bulan yang sama.&quot;
+            </p>
+            <p className="text-white/60 text-lg">
+              Sebuah investasi cerdas yang langsung balik modal sejak hari pertama.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* 5. The Irresistible Offer (Pricing) */}
       <section className="py-32 px-6 relative bg-[#050B14]">
         <div className="max-w-4xl mx-auto">
