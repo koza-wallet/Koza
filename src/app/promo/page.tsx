@@ -74,6 +74,18 @@ export default function PromoPage() {
         </div>
       </section>
 
+      {/* 1.5. Social Proof */}
+      <section className="py-12 border-y border-white/5 bg-white/5 backdrop-blur-sm">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <p className="font-label-md text-white/50 uppercase tracking-widest mb-6 text-sm">Bergabung bersama 5.420+ orang yang sudah mengamankan gajinya</p>
+          <div className="flex flex-wrap justify-center gap-8 md:gap-16 opacity-70 grayscale">
+            <div className="flex items-center gap-2"><span className="material-symbols-outlined">favorite</span><span className="font-bold">Dipercaya</span></div>
+            <div className="flex items-center gap-2"><span className="material-symbols-outlined">security</span><span className="font-bold">Aman 100%</span></div>
+            <div className="flex items-center gap-2"><span className="material-symbols-outlined">bolt</span><span className="font-bold">Super Cepat</span></div>
+          </div>
+        </div>
+      </section>
+
       {/* 2. The Agitation (The Ugly Truth) */}
       <section id="the-ugly-truth" className="py-24 px-6 relative bg-gradient-to-b from-transparent to-[#131B2E]/50">
         <div className="max-w-3xl mx-auto">
@@ -81,32 +93,21 @@ export default function PromoPage() {
           
           <div className="space-y-6 text-lg md:text-xl text-white/70 leading-relaxed font-light">
             <p>
-              Coba ingat-ingat kembali pengeluaran Anda minggu lalu. Anda mungkin ingat tagihan listrik, cicilan motor, atau belanja bulanan. Itu pengeluaran besar. Otak Anda mudah mengingatnya.
-            </p>
-            <p>
-              Tapi tahukah Anda apa yang diam-diam "membunuh" saldo Anda?
+              Anda pasti ingat cicilan motor atau tagihan listrik. Tapi tahukah Anda apa yang diam-diam "membunuh" saldo Anda?
             </p>
             <div className="bg-error/10 border-l-4 border-error p-6 my-8 rounded-r-xl">
-              <p className="text-error-container font-medium italic">
-                Kopi susu 25 ribu.<br/>
-                Biaya admin transfer antar bank 2.500.<br/>
-                Uang parkir 2.000.<br/>
-                Langganan aplikasi streaming yang jarang ditonton 49.000.<br/>
-                Jajan kecil di minimarket 18.000.
-              </p>
+              <ul className="text-error-container font-medium space-y-2">
+                <li className="flex gap-2"><span className="text-error">•</span> Kopi susu 25 ribu</li>
+                <li className="flex gap-2"><span className="text-error">•</span> Biaya admin transfer 2.500</li>
+                <li className="flex gap-2"><span className="text-error">•</span> Uang parkir 2.000</li>
+                <li className="flex gap-2"><span className="text-error">•</span> Jajan minimarket 18.000</li>
+              </ul>
             </div>
             <p>
-              Tampaknya remeh. "Ah, cuma dua puluh ribu." 
-            </p>
-            <p className="font-bold text-white">
-              Namun saat diakumulasikan, "bocor halus" ini bisa memakan 30% hingga 40% dari total pendapatan bulanan Anda!
+              Tampaknya remeh. Namun saat diakumulasikan, "bocor halus" ini bisa memakan <strong>30% hingga 40%</strong> dari total pendapatan Anda!
             </p>
             <p>
-              Masalahnya bukan pada besaran gaji Anda. Masalahnya adalah, <strong>otak manusia tidak dirancang untuk mengingat ratusan transaksi kecil setiap bulan.</strong> Anda mencoba mengandalkan ingatan untuk hal yang mustahil.
-            </p>
-            <p className="text-2xl text-center font-bold text-white mt-12 mb-8">
-              "Jadi, apa solusinya? Mencatat di buku tulis? Ribet."<br/>
-              "Pakai Excel? Terlalu kaku."
+              Masalahnya: <strong>Otak manusia tidak dirancang untuk mengingat ratusan transaksi kecil.</strong> Anda mencoba mengandalkan ingatan untuk hal yang mustahil. Mencatat di buku terlalu ribet, pakai Excel terlalu kaku.
             </p>
           </div>
         </div>
@@ -358,6 +359,10 @@ export default function PromoPage() {
               >
                 Klaim Diskon Tahunan Sekarang
               </Link>
+              <p className="text-center text-xs text-white/70 mt-4 flex items-center justify-center gap-1 font-medium bg-black/10 py-1.5 px-3 rounded-full w-max mx-auto">
+                <span className="material-symbols-outlined text-[14px]">verified_user</span>
+                Garansi 7 Hari Uang Kembali.
+              </p>
             </div>
           </div>
           
@@ -371,6 +376,37 @@ export default function PromoPage() {
             >
               Coba Koza Gratis
             </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* 6. FAQ */}
+      <section className="py-24 px-6 relative bg-gradient-to-b from-[#050B14] to-[#02050A]">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">Pertanyaan yang Sering Diajukan</h2>
+            <p className="text-white/50">Masih ragu? Kami punya jawabannya.</p>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+              <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">lock</span>
+                Apakah data rekening saya aman?
+              </h3>
+              <p className="text-white/60 leading-relaxed">
+                Sangat aman. Koza hanya mencatat nominal angka secara manual. Kami <strong>tidak pernah</strong> meminta akses atau password m-banking Anda. Data Anda sepenuhnya berada di bawah kendali Anda.
+              </p>
+            </div>
+            <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+              <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">cancel</span>
+                Apakah saya bisa membatalkan langganan kapan saja?
+              </h3>
+              <p className="text-white/60 leading-relaxed">
+                Tentu. Tidak ada kontrak yang mengikat. Anda bisa berhenti berlangganan kapan saja langsung dari menu Pengaturan tanpa harus menghubungi Customer Service.
+              </p>
+            </div>
           </div>
         </div>
       </section>
