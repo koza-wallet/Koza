@@ -7,6 +7,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { useFinance } from "@/lib/finance-context";
 import { getTotalBalance, getWalletMonthlyNet } from "@/lib/finance";
 import { formatRupiahAmount, formatSignedRupiahCompact } from "@/lib/format";
+import { PaywallModal } from "@/components/PaywallModal";
 
 import type { Wallet, WalletType } from "@/lib/types";
 
@@ -42,6 +43,7 @@ export default function KelolaDompetPage() {
   const { wallets, transactions, addWallet, updateWallet, deleteWallet } = useFinance();
 
   const [isBalanceHidden, setIsBalanceHidden] = useState(false);
+  const [isPaywallOpen, setIsPaywallOpen] = useState(false);
   const [formMode, setFormMode] = useState<FormMode | null>(null);
   const [formName, setFormName] = useState("");
   const [formType, setFormType] = useState<WalletType>("bank");
@@ -55,9 +57,10 @@ export default function KelolaDompetPage() {
 
   function openAddForm() {
     // Logika PAYWALL: Pengguna FREE maksimal 2 Dompet
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const tier = (session?.user as any)?.subscriptionTier || "FREE";
     if (tier === "FREE" && wallets.length >= 2) {
-      window.alert("🚀 Upgrade ke PREMIUM untuk membuat lebih dari 2 dompet!");
+      setIsPaywallOpen(true);
       return;
     }
 
@@ -490,6 +493,12 @@ export default function KelolaDompetPage() {
           </div>
         </div>
       )}
+
+      <PaywallModal
+        isOpen={isPaywallOpen}
+        onClose={() => setIsPaywallOpen(false)}
+        onSuccess={() => setIsPaywallOpen(false)}
+      />
 
       <BottomNav />
     </>

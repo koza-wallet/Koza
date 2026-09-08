@@ -6,6 +6,7 @@ import { useSession } from "@/lib/supabase-auth";
 import { BottomNav } from "@/components/BottomNav";
 import { formatRupiahAmount } from "@/lib/format";
 import { getPocketsAction, addPocketAction, addPocketBalanceAction } from "@/actions/finance";
+import { PaywallModal } from "@/components/PaywallModal";
 
 interface Pocket {
   id: string;
@@ -27,6 +28,7 @@ export default function KantongPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showTopUpForm, setShowTopUpForm] = useState<string | null>(null);
+  const [isPaywallOpen, setIsPaywallOpen] = useState(false);
 
   // Add Form State
   const [formName, setFormName] = useState("");
@@ -172,7 +174,16 @@ export default function KantongPage() {
         {/* Add Pocket Button */}
         <div className="pt-space-sm">
           <button
-            onClick={() => setShowAddForm(true)}
+            onClick={() => {
+              // Logika PAYWALL: Pengguna FREE maksimal 2 Kantong
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const tier = (session?.user as any)?.subscriptionTier || "FREE";
+              if (tier === "FREE" && pockets.length >= 2) {
+                setIsPaywallOpen(true);
+                return;
+              }
+              setShowAddForm(true);
+            }}
             className="w-full h-14 rounded-full bg-primary-container text-on-primary flex items-center justify-center gap-space-xs font-label-lg text-label-lg shadow-md hover:bg-primary active:scale-[0.99] transition-all"
           >
             <span className="material-symbols-outlined text-[22px]">add_task</span>
@@ -279,6 +290,12 @@ export default function KantongPage() {
           </div>
         </div>
       )}
+
+      <PaywallModal
+        isOpen={isPaywallOpen}
+        onClose={() => setIsPaywallOpen(false)}
+        onSuccess={() => setIsPaywallOpen(false)}
+      />
 
       <BottomNav />
     </>
