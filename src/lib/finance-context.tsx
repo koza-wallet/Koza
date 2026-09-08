@@ -11,12 +11,14 @@ import {
 } from "react";
 import { transactions as initialTransactions, wallets as initialWallets } from "./mock-data";
 import type { Transaction, TransactionDirection, Wallet, WalletType } from "./types";
-import { 
-  getFinanceData, 
-  addWalletAction, 
-  deleteWalletAction, 
-  addTransactionAction, 
-  deleteTransactionAction 
+import {
+  getFinanceData,
+  addWalletAction,
+  updateWalletAction,
+  deleteWalletAction,
+  addTransactionAction,
+  updateTransactionAction,
+  deleteTransactionAction
 } from "@/actions/finance";
 import { getCategoryById } from "@/lib/categories";
 
@@ -126,8 +128,25 @@ function reducer(state: FinanceState, action: FinanceAction): FinanceState {
       };
     }
     case "UPDATE_TRANSACTION": {
-      // Simplification for the mock update
-      return { ...state };
+      const previous = state.transactions.find((t) => t.id === action.payload.id);
+      if (!previous) return state;
+      // Balikkan efek transaksi lama di dompet lama, lalu terapkan efek transaksi baru di dompet baru
+      // (kalau dompetnya sama, ini otomatis jadi net-delta yang benar).
+      let wallets = applyWalletDelta(
+        state.wallets,
+        previous.walletId,
+        -signedAmount(previous.direction, previous.amount)
+      );
+      wallets = applyWalletDelta(
+        wallets,
+        action.payload.walletId,
+        signedAmount(action.payload.direction, action.payload.amount)
+      );
+      return {
+        ...state,
+        wallets,
+        transactions: state.transactions.map((t) => (t.id === action.payload.id ? action.payload : t)),
+      };
     }
     case "DELETE_TRANSACTION": {
       const wallets = applyWalletDelta(
@@ -262,8 +281,9 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
           return {
             id: w.id,
             name: w.name,
-            type: "cash", 
-            provider: w.icon,
+            type: (w.type as WalletType) || "cash",
+            provider: w.provider || undefined,
+            accountNumberMasked: w.accountNumberMasked || undefined,
             balance: balance
           };
         });
@@ -314,7 +334,33 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
         }
       },
       updateTransaction: async (input) => {
-        console.log("Update not fully implemented on server yet", input);
+        try {
+          const dbTransaction = await updateTransactionAction(input);
+
+          let cat = getCategoryById(dbTransaction.categoryId);
+          if (cat.id !== dbTransaction.categoryId) {
+            const match = state.customCategories.find((c: any) => c.id === dbTransaction.categoryId);
+            if (match) cat = match as any;
+          }
+
+          const formatted: Transaction = {
+            id: dbTransaction.id,
+            title: dbTransaction.title,
+            amount: dbTransaction.amount,
+            direction: dbTransaction.direction as TransactionDirection,
+            walletId: dbTransaction.walletId,
+            categoryId: dbTransaction.categoryId,
+            category: cat.fullName,
+            categoryIcon: cat.icon,
+            paymentMethod: dbTransaction.paymentMethod,
+            note: dbTransaction.note || undefined,
+            timestamp: dbTransaction.date.toISOString(),
+          };
+          dispatch({ type: "UPDATE_TRANSACTION", payload: formatted });
+        } catch (e) {
+          console.error(e);
+          throw e;
+        }
       },
       deleteTransaction: async (id) => {
         const existing = state.transactions.find((t) => t.id === id);
@@ -337,19 +383,26 @@ export function FinanceProvider({ children }: { children: ReactNode }) {
       addWallet: async (input) => {
         try {
           const dbWallet = await addWalletAction(input);
-          dispatch({ type: "ADD_WALLET", payload: { 
-            id: dbWallet.id, 
-            name: dbWallet.name, 
-            type: input.type, 
-            provider: input.provider, 
-            balance: input.balance 
+          dispatch({ type: "ADD_WALLET", payload: {
+            id: dbWallet.id,
+            name: dbWallet.name,
+            type: input.type,
+            provider: input.provider,
+            accountNumberMasked: input.accountNumberMasked,
+            balance: input.balance
           } });
         } catch (e) {
           console.error(e);
         }
       },
       updateWallet: async (input) => {
-        dispatch({ type: "UPDATE_WALLET", payload: input });
+        try {
+          await updateWalletAction(input);
+          dispatch({ type: "UPDATE_WALLET", payload: input });
+        } catch (e) {
+          console.error(e);
+          throw e;
+        }
       },
       deleteWallet: async (id) => {
         try {

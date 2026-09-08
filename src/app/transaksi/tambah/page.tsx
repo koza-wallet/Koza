@@ -87,6 +87,10 @@ function CatatTransaksiForm() {
   if (editingTransaction && prefilledForId !== editingTransaction.id) {
     setPrefilledForId(editingTransaction.id);
     setDirection(editingTransaction.direction);
+    // Tab UI (Pengeluaran/Pemasukan) harus ikut disesuaikan — sebelumnya cuma
+    // `direction` yang di-set, jadi tab tetap di default "expense" walau
+    // transaksinya sebenarnya Pemasukan.
+    setTab(editingTransaction.direction);
     setRawAmount(editingTransaction.amount);
     setCategoryId(editingTransaction.categoryId);
     setWalletId(editingTransaction.walletId ?? defaultWalletId);

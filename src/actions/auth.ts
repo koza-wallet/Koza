@@ -104,8 +104,7 @@ export async function updateUserAvatarAction(avatarUrl: string) {
   
   if (!user) return { error: "Unauthorized" };
 
-  const { PrismaClient } = await import("@prisma/client");
-  const prisma = new PrismaClient();
+  const { prisma } = await import("@/lib/prisma");
 
   try {
     await prisma.user.update({

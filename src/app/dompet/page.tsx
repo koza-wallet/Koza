@@ -8,6 +8,8 @@ import { useFinance } from "@/lib/finance-context";
 import { getTotalBalance, getWalletMonthlyNet } from "@/lib/finance";
 import { formatRupiahAmount, formatSignedRupiahCompact } from "@/lib/format";
 import { PaywallModal } from "@/components/PaywallModal";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { Toast, useToast } from "@/components/Toast";
 
 import type { Wallet, WalletType } from "@/lib/types";
 
@@ -52,6 +54,10 @@ export default function KelolaDompetPage() {
   const [formBalance, setFormBalance] = useState(0);
   const [formError, setFormError] = useState<string | null>(null);
   const [currentDate] = useState(() => new Date());
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [inviteWallet, setInviteWallet] = useState<Wallet | null>(null);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const { toast, toastVariant, showToast } = useToast();
 
   const totalBalance = getTotalBalance(wallets);
 
@@ -121,10 +127,28 @@ export default function KelolaDompetPage() {
       setFormError("Dompet ini masih punya riwayat transaksi — tidak bisa dihapus.");
       return;
     }
-    const confirmed = window.confirm("Hapus dompet ini secara permanen?");
-    if (!confirmed) return;
-    deleteWallet(formMode.walletId);
+    setIsDeleteConfirmOpen(true);
+  }
+
+  function confirmDelete() {
+    if (formMode?.type === "edit") {
+      deleteWallet(formMode.walletId);
+    }
+    setIsDeleteConfirmOpen(false);
     closeForm();
+  }
+
+  function handleSendInvite() {
+    if (!inviteWallet) return;
+    const email = inviteEmail.trim();
+    if (!email) return;
+    import("@/actions/finance").then((m) => {
+      m.addWalletMemberAction(inviteWallet.id, email)
+        .then(() => showToast("Undangan berhasil dikirim!"))
+        .catch((e) => showToast(e.message, "error"));
+    });
+    setInviteWallet(null);
+    setInviteEmail("");
   }
 
   return (
@@ -290,14 +314,8 @@ export default function KelolaDompetPage() {
                         aria-label={`Undang Anggota ke ${wallet.name}`}
                         type="button"
                         onClick={() => {
-                          const email = window.prompt("Masukkan email pengguna KoZa yang ingin diundang:");
-                          if (email) {
-                            import("@/actions/finance").then((m) => {
-                               m.addWalletMemberAction(wallet.id, email)
-                                .then(() => alert("Undangan berhasil dikirim!"))
-                                .catch((e) => alert(e.message));
-                            });
-                          }
+                          setInviteWallet(wallet);
+                          setInviteEmail("");
                         }}
                         className="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container transition-colors"
                       >
@@ -499,6 +517,56 @@ export default function KelolaDompetPage() {
         onClose={() => setIsPaywallOpen(false)}
         onSuccess={() => setIsPaywallOpen(false)}
       />
+
+      <ConfirmDialog
+        isOpen={isDeleteConfirmOpen}
+        title="Hapus Dompet?"
+        message="Dompet ini akan dihapus secara permanen. Tindakan ini tidak bisa dibatalkan."
+        confirmLabel="Ya, Hapus"
+        danger
+        onConfirm={confirmDelete}
+        onCancel={() => setIsDeleteConfirmOpen(false)}
+      />
+
+      {/* Bottom Sheet - Undang Anggota */}
+      {inviteWallet && (
+        <div className="fixed inset-0 z-[100] flex items-end justify-center">
+          <button
+            aria-label="Tutup"
+            onClick={() => setInviteWallet(null)}
+            className="absolute inset-0 bg-inverse-surface/40 backdrop-blur-sm"
+          />
+          <div className="relative w-full max-w-md bg-surface-container-lowest rounded-t-[28px] p-space-lg pb-safe shadow-2xl space-y-space-md">
+            <h3 className="font-headline-sm text-headline-sm text-on-surface">
+              Undang Anggota ke {inviteWallet.name}
+            </h3>
+            <div className="flex items-center gap-space-xs p-space-sm rounded-lg bg-surface-container-low">
+              <div className="w-9 h-9 rounded-lg bg-surface-variant text-on-surface-variant flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-[20px]">mail</span>
+              </div>
+              <input
+                autoFocus
+                type="email"
+                className="flex-1 bg-transparent font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none"
+                placeholder="Email pengguna KoZa"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={handleSendInvite}
+              disabled={!inviteEmail.trim()}
+              className="w-full h-[52px] bg-primary-container hover:bg-primary text-on-primary rounded-[16px] flex items-center justify-center gap-space-xs font-label-lg text-label-lg shadow-md transition-all active:scale-[0.99] disabled:opacity-50"
+            >
+              <span className="material-symbols-outlined text-[20px]">send</span>
+              <span>Kirim Undangan</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      <Toast message={toast} variant={toastVariant} />
 
       <BottomNav />
     </>

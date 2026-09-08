@@ -14,6 +14,7 @@ import { updateUserAvatarAction } from "@/actions/auth";
 import { savePushSubscriptionAction } from "@/actions/notifications";
 import { createClient } from "@/utils/supabase/client";
 import { PaywallModal } from "@/components/PaywallModal";
+import { Toast, useToast } from "@/components/Toast";
 
 export default function ProfilPage() {
   const { data: session, loading } = useSession();
@@ -27,6 +28,7 @@ export default function ProfilPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [isPaywallOpen, setIsPaywallOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast, toastVariant, showToast } = useToast();
 
   useEffect(() => {
     // Ambil data profil dari database (Prisma) karena metadata auth tidak sinkron real-time
@@ -102,7 +104,7 @@ export default function ProfilPage() {
         try {
           const permission = await Notification.requestPermission();
           if (permission !== "granted") {
-            alert("Izin notifikasi ditolak oleh browser.");
+            showToast("Izin notifikasi ditolak oleh browser.", "error");
             setIsReminderOn(false);
             return;
           }
@@ -116,11 +118,11 @@ export default function ProfilPage() {
           await savePushSubscriptionAction(subscription, true);
         } catch (error) {
           console.error("Gagal berlangganan push notification:", error);
-          alert("Terjadi kesalahan saat mengaktifkan push notification.");
+          showToast("Terjadi kesalahan saat mengaktifkan push notification.", "error");
           setIsReminderOn(false);
         }
       } else {
-        alert("Browser Anda tidak mendukung fitur Notifikasi Push.");
+        showToast("Browser Anda tidak mendukung fitur Notifikasi Push.", "error");
         setIsReminderOn(false);
       }
     } else {
@@ -134,7 +136,7 @@ export default function ProfilPage() {
     if (!file || !user) return;
 
     if (file.size > 2 * 1024 * 1024) {
-      alert("Ukuran gambar terlalu besar. Maksimal 2MB.");
+      showToast("Ukuran gambar terlalu besar. Maksimal 2MB.", "error");
       return;
     }
 
@@ -166,11 +168,11 @@ export default function ProfilPage() {
       // 4. Update profil Prisma Database
       await updateUserAvatarAction(publicUrl);
       
-      alert("Foto profil berhasil diperbarui!");
+      showToast("Foto profil berhasil diperbarui!");
       // window.location.reload(); // Supabase Auth listener akan otomatis memicu render ulang
     } catch (err: any) {
       console.error(err);
-      alert("Gagal mengunggah foto. Pastikan Anda telah membuat bucket 'avatars' di Supabase.");
+      showToast("Gagal mengunggah foto. Pastikan Anda telah membuat bucket 'avatars' di Supabase.", "error");
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -186,7 +188,7 @@ export default function ProfilPage() {
           </div>
           <div className="flex items-center gap-space-xs">
             <button
-              onClick={() => alert("Belum ada notifikasi baru")}
+              onClick={() => showToast("Belum ada notifikasi baru")}
               aria-label="Notifikasi"
               className="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
             >
@@ -455,9 +457,11 @@ export default function ProfilPage() {
         onSuccess={async () => {
           await handlePaymentSuccess();
           setIsPaywallOpen(false);
-          alert("Pembayaran Berhasil! Silakan muat ulang halaman untuk melihat status PREMIUM Anda.");
-        }} 
+          showToast("Pembayaran Berhasil! Silakan muat ulang halaman untuk melihat status PREMIUM Anda.");
+        }}
       />
+
+      <Toast message={toast} variant={toastVariant} />
 
       <BottomNav />
     </>

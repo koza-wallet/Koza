@@ -1,10 +1,8 @@
 "use server";
 
-import { PrismaClient } from "@prisma/client";
 import { createClient } from "@/utils/supabase/server";
 import type { NewTransactionInput, UpdateTransactionInput, NewWalletInput, UpdateWalletInput } from "@/lib/finance-context";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 export async function getSessionUser() {
   const supabase = await createClient();
@@ -29,10 +27,13 @@ export async function getSessionUser() {
     });
 
     // Auto-Provisioning: Buat Dompet Utama otomatis untuk pengguna baru
+    // (jalur ini hanya terpakai kalau user login tanpa lewat auth/callback,
+    // mis. akun lama — pengguna baru sudah dapat dompetnya di auth/callback)
     await prisma.wallet.create({
       data: {
         name: "Dompet Utama",
         icon: "account_balance_wallet",
+        type: "cash",
         ownerId: dbUser.id
       }
     });
@@ -68,12 +69,16 @@ export async function getFinanceData() {
       orderBy: { createdAt: "asc" }
     });
     
-    // Auto-fix: Jika pengguna lama tidak memiliki dompet, buatkan satu otomatis
+    // Auto-fix: pengaman untuk kasus lama (akun sebelum perbaikan ini) atau
+    // pengguna yang sengaja menghapus dompet terakhirnya — dompet baru kini
+    // sudah dibuat sekali di titik registrasi (auth/callback), jadi jalur ini
+    // seharusnya jarang tereksekusi pada penggunaan normal.
     if (wallets.length === 0) {
       const defaultWallet = await prisma.wallet.create({
         data: {
           name: "Dompet Utama",
           icon: "account_balance_wallet",
+          type: "cash",
           ownerId: user.id
         }
       });
@@ -121,11 +126,45 @@ export async function addWalletAction(input: NewWalletInput) {
     data: {
       name: input.name,
       ownerId: user.id,
-      // For simplicity we just use icon for provider/type
-      icon: input.provider || input.type
+      icon: input.provider || input.type,
+      type: input.type,
+      provider: input.provider,
+      accountNumberMasked: input.accountNumberMasked
     }
   });
+
+  // Saldo awal dicatat sebagai transaksi "Saldo Awal", bukan kolom terpisah —
+  // konsisten dengan model saldo yang selalu diturunkan dari total transaksi.
+  if (input.balance && input.balance > 0) {
+    await prisma.transaction.create({
+      data: {
+        title: "Saldo Awal",
+        amount: input.balance,
+        direction: "income",
+        date: new Date(),
+        paymentMethod: newWallet.id,
+        walletId: newWallet.id,
+        categoryId: "saldo_awal",
+        userId: user.id
+      }
+    });
+  }
+
   return newWallet;
+}
+
+export async function updateWalletAction(input: UpdateWalletInput) {
+  const user = await getSessionUser();
+  const updated = await prisma.wallet.update({
+    where: { id: input.id, ownerId: user.id },
+    data: {
+      name: input.name,
+      provider: input.provider,
+      accountNumberMasked: input.accountNumberMasked,
+      icon: input.provider || undefined
+    }
+  });
+  return updated;
 }
 
 export async function deleteWalletAction(id: string) {
@@ -149,6 +188,26 @@ export async function addTransactionAction(input: NewTransactionInput) {
       walletId: input.walletId,
       categoryId: input.categoryId,
       userId: user.id,
+      currencyCode: input.currencyCode || "IDR",
+      exchangeRate: input.exchangeRate || 1.0
+    }
+  });
+  return transaction;
+}
+
+export async function updateTransactionAction(input: UpdateTransactionInput) {
+  const user = await getSessionUser();
+  const transaction = await prisma.transaction.update({
+    where: { id: input.id, userId: user.id },
+    data: {
+      title: input.title,
+      amount: input.amount,
+      direction: input.direction,
+      date: new Date(input.timestamp),
+      paymentMethod: input.walletId,
+      note: input.note,
+      walletId: input.walletId,
+      categoryId: input.categoryId,
       currencyCode: input.currencyCode || "IDR",
       exchangeRate: input.exchangeRate || 1.0
     }

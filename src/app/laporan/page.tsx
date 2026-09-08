@@ -9,6 +9,7 @@ import { formatCompactRupiah, formatRupiahAmount } from "@/lib/format";
 import { getUserProfileAction, incrementExportCountAction } from "@/actions/finance";
 import { useEffect } from "react";
 import { PaywallModal } from "@/components/PaywallModal";
+import { Toast, useToast } from "@/components/Toast";
 
 
 /** Lowercase, dash-separated, ASCII-only — safe as a filename fragment. */
@@ -51,6 +52,7 @@ export default function LaporanPage() {
   const [dbSubscriptionTier, setDbSubscriptionTier] = useState<string | null>(null);
   const [exportCount, setExportCount] = useState<number>(0);
   const [isPaywallOpen, setIsPaywallOpen] = useState(false);
+  const { toast, toastVariant, showToast } = useToast();
 
   useEffect(() => {
     getUserProfileAction().then((data) => {
@@ -134,7 +136,7 @@ export default function LaporanPage() {
           </div>
           <div className="flex items-center gap-space-xs">
             <button
-              onClick={() => alert("Belum ada notifikasi baru")}
+              onClick={() => showToast("Belum ada notifikasi baru")}
               aria-label="Notifikasi"
               className="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
             >
@@ -429,6 +431,8 @@ export default function LaporanPage() {
           window.location.reload();
         }} 
       />
+
+      <Toast message={toast} variant={toastVariant} />
 
       <BottomNav />
     </>

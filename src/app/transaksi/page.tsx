@@ -8,6 +8,7 @@ import { getCategoryById } from "@/lib/categories";
 import { useFinance } from "@/lib/finance-context";
 import { getMonthlySummary, getWalletDisplayLabel, groupTransactionsByDay, isSameMonth } from "@/lib/finance";
 import { formatDayGroupLabel, formatSignedRupiahCompact } from "@/lib/format";
+import { Toast, useToast } from "@/components/Toast";
 
 import type { TransactionDirection } from "@/lib/types";
 
@@ -46,6 +47,7 @@ function RiwayatTransaksiContent() {
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
   const [walletFilter, setWalletFilter] = useState<string>("all");
   const [sortAsc, setSortAsc] = useState(false);
+  const { toast, toastVariant, showToast } = useToast();
 
   const monthlySummary = getMonthlySummary(transactions, currentDate);
   const monthLabel = new Intl.DateTimeFormat("id-ID", { month: "long", year: "numeric" }).format(
@@ -82,7 +84,7 @@ function RiwayatTransaksiContent() {
           </div>
           <div className="flex items-center gap-space-xs">
             <button
-              onClick={() => alert("Belum ada notifikasi baru")}
+              onClick={() => showToast("Belum ada notifikasi baru")}
               aria-label="Notifikasi"
               className="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors"
             >
@@ -338,6 +340,8 @@ function RiwayatTransaksiContent() {
           </div>
         </div>
       )}
+
+      <Toast message={toast} variant={toastVariant} />
 
       <BottomNav />
     </>

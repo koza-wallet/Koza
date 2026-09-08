@@ -6,6 +6,8 @@ import { useState, useEffect } from "react";
 import { getUserProfileAction, setSubscriptionTierAction } from "@/actions/finance";
 import { useSession, signOut } from "@/lib/supabase-auth";
 import { useFinance } from "@/lib/finance-context";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { Toast, useToast } from "@/components/Toast";
 
 export default function PengaturanPage() {
   const router = useRouter();
@@ -13,14 +15,19 @@ export default function PengaturanPage() {
   const [darkMode, setDarkMode] = useState(true);
   const [dbUserEmail, setDbUserEmail] = useState("");
   const [dbTier, setDbTier] = useState("FREE");
-  
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
+  const [isDeleteAccountConfirmOpen, setIsDeleteAccountConfirmOpen] = useState(false);
+  const { toast, toastVariant, showToast } = useToast();
+
   const { resetToDefault } = useFinance();
 
   function handleResetToDefault() {
-    const confirmed = window.confirm(
-      "Reset semua saldo dompet & riwayat transaksi ke data awal (dummy)? Perubahan yang sudah Anda catat akan hilang dan tidak bisa dikembalikan."
-    );
-    if (confirmed) resetToDefault();
+    setIsResetConfirmOpen(true);
+  }
+
+  function confirmReset() {
+    resetToDefault();
+    setIsResetConfirmOpen(false);
   }
 
   // Set email dari session client-side segera (tidak butuh server action)
@@ -48,14 +55,14 @@ export default function PengaturanPage() {
     try {
       const res = await setSubscriptionTierAction(tier);
       if (res?.error) {
-        alert(`Gagal mengubah tier:\n${res.error}`);
+        showToast(`Gagal mengubah tier: ${res.error}`, "error");
         return;
       }
       setDbTier(tier);
-      alert(`Tier berhasil diubah ke ${tier}`);
+      showToast(`Tier berhasil diubah ke ${tier}`);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
-      alert(`Gagal memanggil fungsi:\n${msg}`);
+      showToast(`Gagal memanggil fungsi: ${msg}`, "error");
     }
   };
 
@@ -72,15 +79,17 @@ export default function PengaturanPage() {
   };
 
   const handleComingSoon = () => {
-    alert("Fitur ini sedang dalam tahap pengembangan (Segera Hadir).");
+    showToast("Fitur ini sedang dalam tahap pengembangan (Segera Hadir).");
   };
 
   const handleDeleteAccount = () => {
-    const confirmed = window.confirm("Apakah Anda yakin ingin menghapus akun Anda beserta semua data transaksi? Tindakan ini tidak dapat dibatalkan.");
-    if (confirmed) {
-      alert("Permintaan penghapusan akun telah dikirim ke admin.");
-    }
+    setIsDeleteAccountConfirmOpen(true);
   };
+
+  function confirmDeleteAccount() {
+    setIsDeleteAccountConfirmOpen(false);
+    showToast("Permintaan penghapusan akun telah dikirim ke admin.");
+  }
 
   return (
     <>
@@ -273,6 +282,28 @@ export default function PengaturanPage() {
         )}
 
       </main>
+
+      <ConfirmDialog
+        isOpen={isResetConfirmOpen}
+        title="Reset ke Data Awal?"
+        message="Semua saldo dompet & riwayat transaksi akan dikembalikan ke data awal (dummy). Perubahan yang sudah Anda catat akan hilang dan tidak bisa dikembalikan."
+        confirmLabel="Ya, Reset"
+        danger
+        onConfirm={confirmReset}
+        onCancel={() => setIsResetConfirmOpen(false)}
+      />
+
+      <ConfirmDialog
+        isOpen={isDeleteAccountConfirmOpen}
+        title="Hapus Akun?"
+        message="Akun Anda beserta semua data transaksi akan dihapus. Tindakan ini tidak dapat dibatalkan."
+        confirmLabel="Ya, Hapus Akun"
+        danger
+        onConfirm={confirmDeleteAccount}
+        onCancel={() => setIsDeleteAccountConfirmOpen(false)}
+      />
+
+      <Toast message={toast} variant={toastVariant} />
     </>
   );
 }

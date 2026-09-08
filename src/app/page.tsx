@@ -28,6 +28,7 @@ export default function BerandaPage() {
   const [isPaywallOpen, setIsPaywallOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [dbUserName, setDbUserName] = useState<string>("");
+  const [subscriptionTier, setSubscriptionTier] = useState<string>("FREE");
   const { wallets, transactions, pockets } = useFinance();
   const [currentDate] = useState(() => new Date());
 
@@ -35,11 +36,13 @@ export default function BerandaPage() {
   const emailPrefix = session?.user?.email?.split("@")[0] || "";
   // Nama yang ditampilkan: prioritas DB → email prefix → "..."
   const displayName = dbUserName || emailPrefix || "...";
+  const isPremium = subscriptionTier === "PREMIUM" || subscriptionTier === "DEVELOPER";
 
   useEffect(() => {
     if (session?.user) {
       getUserProfileAction().then((data) => {
         if (data?.name) setDbUserName(data.name);
+        if (data?.subscriptionTier) setSubscriptionTier(data.subscriptionTier);
       }).catch(() => {});
     }
   }, [session]);
@@ -332,10 +335,10 @@ export default function BerandaPage() {
               </Link>
             </div>
 
-            {/* Zeigarnik Effect: Deteksi Bocor Halus (Premium Mockup) */}
+            {/* Zeigarnik Effect: Deteksi Bocor Halus (Premium) */}
             <div className="relative bg-surface-container-lowest rounded-[20px] p-space-md shadow-sm flex flex-col gap-space-sm overflow-hidden border border-outline-variant/30">
-              {/* Blurred Content Layer */}
-              <div className="filter blur-[6px] opacity-60 pointer-events-none select-none flex flex-col gap-3">
+              {/* Content Layer — blur hanya untuk tier FREE */}
+              <div className={`flex flex-col gap-3 ${isPremium ? "" : "filter blur-[6px] opacity-60 pointer-events-none select-none"}`}>
                 <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-error text-[20px]">warning</span>
                   <h3 className="font-headline-sm text-headline-sm text-on-surface">Deteksi Kebocoran Dana</h3>
@@ -352,21 +355,23 @@ export default function BerandaPage() {
                 <p className="font-body-sm text-body-sm text-on-surface">Peringatan: Ada 3 pengeluaran Anda yang melebihi batas wajar bulan ini. Anda berpotensi kehilangan lebih banyak uang jika tidak segera dihentikan.</p>
               </div>
 
-              {/* Overlay / Paywall CTA */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-surface/50 backdrop-blur-[2px] z-10">
-                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-2 shadow-[0_4px_12px_rgba(0,108,73,0.15)] text-primary">
-                  <span className="material-symbols-outlined text-[24px]">lock</span>
+              {/* Overlay / Paywall CTA — hanya untuk tier FREE */}
+              {!isPremium && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-surface/50 backdrop-blur-[2px] z-10">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-2 shadow-[0_4px_12px_rgba(0,108,73,0.15)] text-primary">
+                    <span className="material-symbols-outlined text-[24px]">lock</span>
+                  </div>
+                  <h4 className="font-label-lg text-label-lg text-on-surface font-bold mb-1">Analisis Bocor Halus</h4>
+                  <p className="font-body-sm text-body-sm text-on-surface-variant mb-4 px-8 text-center">Buka fitur Premium untuk melihat letak kebocoran uang Anda.</p>
+                  <button
+                    onClick={() => setIsPaywallOpen(true)}
+                    className="px-5 py-2.5 bg-primary text-on-primary rounded-full font-label-md font-extrabold shadow-[0_4px_14px_rgba(0,108,73,0.4)] hover:shadow-[0_6px_20px_rgba(0,108,73,0.6)] active:scale-95 transition-all flex items-center gap-2"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">key</span>
+                    Buka Kunci Premium
+                  </button>
                 </div>
-                <h4 className="font-label-lg text-label-lg text-on-surface font-bold mb-1">Analisis Bocor Halus</h4>
-                <p className="font-body-sm text-body-sm text-on-surface-variant mb-4 px-8 text-center">Buka fitur Premium untuk melihat letak kebocoran uang Anda.</p>
-                <button 
-                  onClick={() => setIsPaywallOpen(true)}
-                  className="px-5 py-2.5 bg-primary text-on-primary rounded-full font-label-md font-extrabold shadow-[0_4px_14px_rgba(0,108,73,0.4)] hover:shadow-[0_6px_20px_rgba(0,108,73,0.6)] active:scale-95 transition-all flex items-center gap-2"
-                >
-                  <span className="material-symbols-outlined text-[18px]">key</span>
-                  Buka Kunci Premium
-                </button>
-              </div>
+              )}
             </div>
 
             {/* Recent Activity Section */}

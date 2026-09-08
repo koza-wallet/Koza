@@ -7,6 +7,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { formatRupiahAmount } from "@/lib/format";
 import { getPocketsAction, addPocketAction, addPocketBalanceAction } from "@/actions/finance";
 import { PaywallModal } from "@/components/PaywallModal";
+import { Toast, useToast } from "@/components/Toast";
 
 interface Pocket {
   id: string;
@@ -29,6 +30,7 @@ export default function KantongPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [showTopUpForm, setShowTopUpForm] = useState<string | null>(null);
   const [isPaywallOpen, setIsPaywallOpen] = useState(false);
+  const { toast, toastVariant, showToast } = useToast();
 
   // Add Form State
   const [formName, setFormName] = useState("");
@@ -68,7 +70,7 @@ export default function KantongPage() {
       setFormTarget(0);
     } catch (e) {
       console.error(e);
-      alert("Gagal membuat kantong");
+      showToast("Gagal membuat kantong", "error");
     }
   }
 
@@ -83,7 +85,7 @@ export default function KantongPage() {
       setTopUpAmount(0);
     } catch (e) {
       console.error(e);
-      alert("Gagal menabung ke kantong");
+      showToast("Gagal menabung ke kantong", "error");
     }
   }
 
@@ -296,6 +298,8 @@ export default function KantongPage() {
         onClose={() => setIsPaywallOpen(false)}
         onSuccess={() => setIsPaywallOpen(false)}
       />
+
+      <Toast message={toast} variant={toastVariant} />
 
       <BottomNav />
     </>

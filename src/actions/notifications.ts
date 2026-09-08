@@ -1,9 +1,7 @@
 "use server";
 
-import { PrismaClient } from "@prisma/client";
 import { getSessionUser } from "./finance";
-
-const prisma = new PrismaClient();
+import { prisma } from "@/lib/prisma";
 
 export async function savePushSubscriptionAction(subscription: any | null, isReminderOn: boolean) {
   try {

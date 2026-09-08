@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Toast, useToast } from "@/components/Toast";
 
 interface PaywallModalProps {
   isOpen: boolean;
@@ -11,11 +12,12 @@ interface PaywallModalProps {
 export function PaywallModal({ isOpen, onClose, onSuccess }: PaywallModalProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<"monthly" | "yearly" | "lifetime">("lifetime");
+  const { toast, toastVariant, showToast } = useToast();
 
   if (!isOpen) return null;
 
   const handlePayment = () => {
-    alert("Mohon maaf, sistem pembayaran sedang mengalami gangguan (Error). Silakan coba lagi nanti.");
+    showToast("Mohon maaf, sistem pembayaran sedang mengalami gangguan (Error). Silakan coba lagi nanti.", "error");
   };
 
   return (
@@ -128,6 +130,8 @@ export function PaywallModal({ isOpen, onClose, onSuccess }: PaywallModalProps) 
           </p>
         </div>
       </div>
+
+      <Toast message={toast} variant={toastVariant} />
     </div>
   );
 }

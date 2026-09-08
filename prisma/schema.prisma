@@ -30,11 +30,14 @@ model User {
 }
 
 model Wallet {
-  id           String         @id @default(cuid())
-  name         String
-  icon         String         @default("account_balance_wallet")
-  ownerId      String
-  owner        User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  id                  String         @id @default(cuid())
+  name                String
+  icon                String         @default("account_balance_wallet")
+  type                String         @default("cash") // bank, cash, or ewallet
+  provider            String?
+  accountNumberMasked String?
+  ownerId             String
+  owner               User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   createdAt    DateTime       @default(now())
   
   members      WalletMember[]

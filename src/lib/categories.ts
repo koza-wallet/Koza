@@ -143,6 +143,15 @@ export const CATEGORY_OPTIONS: CategoryOption[] = [
     text: "text-on-surface-variant",
     appliesTo: ["income", "expense"],
   },
+  {
+    id: "saldo_awal",
+    name: "Saldo Awal",
+    fullName: "Saldo Awal",
+    icon: "account_balance_wallet",
+    bg: "bg-primary-fixed",
+    text: "text-on-primary-fixed",
+    appliesTo: [], // Hidden from manual selection — hanya dibuat otomatis saat dompet baru dibuat dengan saldo awal
+  },
 ];
 
 export const DEFAULT_EXPENSE_CATEGORY_ID = "makan";

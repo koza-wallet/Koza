@@ -7,12 +7,14 @@ import { getCategoryById } from "@/lib/categories";
 import { useFinance } from "@/lib/finance-context";
 import { getWalletDisplayLabel } from "@/lib/finance";
 import { formatFullDateId, formatRupiahAmount, formatTimeId } from "@/lib/format";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 export default function DetailTransaksiPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { transactions, wallets, deleteTransaction } = useFinance();
   const [toast, setToast] = useState<string | null>(null);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
   const transaction = transactions.find((t) => t.id === id);
 
@@ -42,11 +44,12 @@ export default function DetailTransaksiPage() {
     }
   }
 
-  function handleDelete(transactionId: string) {
-    const confirmed = window.confirm(
-      "Apakah Anda yakin ingin menghapus transaksi ini? Saldo Anda akan dikalkulasi ulang."
-    );
-    if (!confirmed) return;
+  function handleDelete() {
+    setIsDeleteConfirmOpen(true);
+  }
+
+  function confirmDelete(transactionId: string) {
+    setIsDeleteConfirmOpen(false);
     deleteTransaction(transactionId);
     router.push("/transaksi");
   }
@@ -111,9 +114,19 @@ export default function DetailTransaksiPage() {
           onCopyId={() => handleCopyId(transaction.id)}
           onDownload={() => showToast("Mengunduh resi transaksi (PDF)...")}
           onEdit={() => router.push(`/transaksi/tambah?id=${transaction.id}`)}
-          onDelete={() => handleDelete(transaction.id)}
+          onDelete={handleDelete}
         />
       )}
+
+      <ConfirmDialog
+        isOpen={isDeleteConfirmOpen}
+        title="Hapus Transaksi?"
+        message="Transaksi ini akan dihapus dan saldo dompet terkait akan dikalkulasi ulang. Tindakan ini tidak bisa dibatalkan."
+        confirmLabel="Ya, Hapus"
+        danger
+        onConfirm={() => transaction && confirmDelete(transaction.id)}
+        onCancel={() => setIsDeleteConfirmOpen(false)}
+      />
 
       <div
         className={`fixed bottom-24 left-1/2 -translate-x-1/2 px-space-md py-space-xs rounded-full bg-inverse-surface text-inverse-on-surface shadow-2xl flex items-center gap-space-xs z-50 max-w-[90vw] transition-all duration-300 ${
