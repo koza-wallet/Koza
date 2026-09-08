@@ -24,12 +24,20 @@ export default function PromoPage() {
             <Image src="/image2.png" alt="Koza Logo" width={32} height={32} className="object-contain" />
             <span className="font-headline-sm text-headline-sm tracking-tight font-bold text-white">Koza</span>
           </div>
-          <Link 
-            href="/auth/login" 
-            className="px-5 py-2 rounded-full font-label-md text-label-md bg-white/10 text-white hover:bg-white/20 transition-colors"
-          >
-            Masuk
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link 
+              href="/auth/login" 
+              className="px-5 py-2 rounded-full font-label-md text-label-md bg-transparent text-white hover:bg-white/10 transition-colors"
+            >
+              Masuk
+            </Link>
+            <Link 
+              href="/auth/register" 
+              className={`px-5 py-2 rounded-full font-label-md text-label-md text-[#050B14] font-bold transition-all duration-300 ${scrolled ? "bg-white hover:bg-gray-100 shadow-[0_0_15px_rgba(255,255,255,0.3)]" : "bg-gradient-to-r from-[#FF7A00] to-[#FF9900] hover:from-[#FF9900] hover:to-[#FFB800] text-[#050B14] shadow-[0_0_20px_rgba(255,122,0,0.4)]"}`}
+            >
+              Coba Gratis
+            </Link>
+          </div>
         </div>
       </nav>
 
@@ -45,14 +53,14 @@ export default function PromoPage() {
           </div>
           
           <h1 className="text-4xl md:text-5xl lg:text-7xl leading-[1.1] font-extrabold tracking-tight mb-8">
-            Pernahkah Anda menatap layar ATM Anda, menarik napas panjang, dan bergumam pelan... <br />
+            Hentikan Kebocoran Gaji Anda <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-error to-[#FF6B6B] block mt-4">
-              "Ke mana perginya uang gajiku bulan ini?"
+              Hari Ini Juga.
             </span>
           </h1>
           
           <p className="text-lg md:text-xl text-white/60 mb-10 max-w-2xl leading-relaxed">
-            Gaji lumayan, gaya hidup biasa saja. Tapi entah kenapa, setiap tanggal 20 saldo sudah menipis. Jika ini terdengar seperti Anda, mohon luangkan 3 menit membaca tulisan ini. Ini bisa menyelamatkan masa depan finansial Anda.
+            Pernahkah Anda menatap layar ATM dan bergumam, "Ke mana perginya uang gajiku bulan ini?" Cari tahu persis ke mana uang Anda pergi sebelum pertengahan bulan dengan pendekatan <em>offline-first</em> yang cepat, aman, dan 100% akurat.
           </p>
           
           <div className="mb-16 flex flex-col items-center">
@@ -79,13 +87,46 @@ export default function PromoPage() {
       </section>
 
       {/* 1.5. Social Proof */}
-      <section className="py-12 border-y border-white/5 bg-white/5 backdrop-blur-sm">
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          <p className="font-label-md text-white/50 uppercase tracking-widest mb-6 text-sm">Bergabung bersama 5.420+ orang yang sudah mengamankan gajinya</p>
-          <div className="flex flex-wrap justify-center gap-8 md:gap-16 opacity-70 grayscale">
-            <div className="flex items-center gap-2"><span className="material-symbols-outlined">favorite</span><span className="font-bold">Dipercaya</span></div>
-            <div className="flex items-center gap-2"><span className="material-symbols-outlined">security</span><span className="font-bold">Aman 100%</span></div>
-            <div className="flex items-center gap-2"><span className="material-symbols-outlined">bolt</span><span className="font-bold">Super Cepat</span></div>
+      <section className="py-16 border-y border-white/5 bg-white/5 backdrop-blur-sm">
+        <div className="max-w-6xl mx-auto px-6 text-center">
+          <p className="font-label-md text-white/50 uppercase tracking-widest mb-10 text-sm">Bergabung bersama 5.420+ orang yang sudah mengamankan gajinya</p>
+          
+          <div className="grid md:grid-cols-3 gap-6 text-left">
+            <div className="bg-white/5 border border-white/10 p-6 rounded-2xl relative">
+              <span className="text-4xl text-[#FF9900]/20 absolute top-4 right-4 material-symbols-outlined">format_quote</span>
+              <div className="flex gap-1 text-[#FF9900] mb-3">
+                {[1,2,3,4,5].map(i => <span key={i} className="material-symbols-outlined text-[16px] fill-current">star</span>)}
+              </div>
+              <p className="text-white/80 font-medium mb-4">&quot;Gila, ternyata sebulan ini saya abis 1.5 juta cuma buat jajan kopi doang. Koza beneran ngebuka mata saya soal bocor halus.&quot;</p>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">B</div>
+                <div><p className="font-bold text-sm text-white/90">Budi Pratama</p><p className="text-xs text-white/50">Karyawan Swasta</p></div>
+              </div>
+            </div>
+            
+            <div className="bg-white/5 border border-white/10 p-6 rounded-2xl relative">
+              <span className="text-4xl text-[#FF9900]/20 absolute top-4 right-4 material-symbols-outlined">format_quote</span>
+              <div className="flex gap-1 text-[#FF9900] mb-3">
+                {[1,2,3,4,5].map(i => <span key={i} className="material-symbols-outlined text-[16px] fill-current">star</span>)}
+              </div>
+              <p className="text-white/80 font-medium mb-4">&quot;Suka banget sama fiturnya yang bisa offline. Gak perlu nunggu loading pas mau nyatet di minimarket. Langsung sat set!&quot;</p>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-error to-orange-500 flex items-center justify-center text-white font-bold">S</div>
+                <div><p className="font-bold text-sm text-white/90">Siska L.</p><p className="text-xs text-white/50">Freelancer</p></div>
+              </div>
+            </div>
+
+            <div className="bg-white/5 border border-white/10 p-6 rounded-2xl relative">
+              <span className="text-4xl text-[#FF9900]/20 absolute top-4 right-4 material-symbols-outlined">format_quote</span>
+              <div className="flex gap-1 text-[#FF9900] mb-3">
+                {[1,2,3,4,5].map(i => <span key={i} className="material-symbols-outlined text-[16px] fill-current">star</span>)}
+              </div>
+              <p className="text-white/80 font-medium mb-4">&quot;Akhirnya nemu aplikasi yang gak maksa sinkronisasi ke bank. Saya lebih ngerasa aman nyatet manual dan lebih sadar pengeluaran.&quot;</p>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-500 flex items-center justify-center text-white font-bold">R</div>
+                <div><p className="font-bold text-sm text-white/90">Reza A.</p><p className="text-xs text-white/50">Wiraswasta</p></div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -141,7 +182,7 @@ export default function PromoPage() {
             <div className="absolute inset-0 flex items-center justify-center z-20 group-hover:opacity-0 transition-opacity duration-500">
               <span className="px-6 py-3 rounded-full bg-surface text-on-surface font-bold text-lg shadow-xl flex items-center gap-2">
                 <span className="material-symbols-outlined text-primary">visibility</span>
-                Lihat Koza Beraksi
+                Intip Antarmuka Koza
               </span>
             </div>
           </div>
@@ -380,7 +421,7 @@ export default function PromoPage() {
                 href="/auth/register"
                 className="block w-full py-4 rounded-xl border-2 border-white/20 text-white font-bold text-center hover:bg-white/10 transition-colors"
               >
-                Ambil Bulanan
+                Mulai Disiplin Hari Ini
               </Link>
             </div>
 
@@ -428,7 +469,7 @@ export default function PromoPage() {
                 href="/auth/register"
                 className="block w-full py-4 rounded-xl bg-white text-[#006C49] font-black text-lg text-center shadow-lg hover:shadow-2xl hover:scale-[1.02] transition-all active:scale-95"
               >
-                Klaim Diskon Tahunan Sekarang
+                Amankan Gaji Setahun
               </Link>
               <p className="text-center text-xs text-white/70 mt-4 flex items-center justify-center gap-1 font-medium bg-black/10 py-1.5 px-3 rounded-full w-max mx-auto">
                 <span className="material-symbols-outlined text-[14px]">verified_user</span>
@@ -479,7 +520,7 @@ export default function PromoPage() {
                 href="/auth/register"
                 className="block w-full py-4 rounded-xl bg-[#050B14] text-white font-black text-lg text-center shadow-lg hover:shadow-2xl hover:scale-[1.02] transition-all active:scale-95 border border-white/10 hover:border-[#FF9900]"
               >
-                Ambil Akses Seumur Hidup
+                Investasi Sekali Seumur Hidup
               </Link>
               <p className="text-center text-xs text-white/80 mt-4 flex items-center justify-center gap-1 font-medium bg-black/20 py-1.5 px-3 rounded-full w-max mx-auto">
                 <span className="material-symbols-outlined text-[14px]">verified_user</span>
@@ -527,6 +568,24 @@ export default function PromoPage() {
               </h3>
               <p className="text-white/60 leading-relaxed">
                 Tentu. Tidak ada kontrak yang mengikat. Anda bisa berhenti berlangganan kapan saja langsung dari menu Pengaturan tanpa harus menghubungi Customer Service.
+              </p>
+            </div>
+            <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+              <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">edit_square</span>
+                Saya orangnya malas mencatat, apakah ini cocok untuk saya?
+              </h3>
+              <p className="text-white/60 leading-relaxed">
+                Justru karena itu Anda butuh Koza! Kami memiliki fitur <strong>Pengingat Agresif</strong> yang akan memastikan Anda tidak lupa. Lagipula, antarmuka kami didesain agar mencatat hanya butuh 3 detik, lebih cepat dari membalas chat.
+              </p>
+            </div>
+            <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+              <h3 className="text-lg font-bold text-white mb-2 flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary">sync_disabled</span>
+                Kenapa tidak otomatis tersambung ke rekening bank?
+              </h3>
+              <p className="text-white/60 leading-relaxed">
+                Ini disengaja. Mencatat manual membangun kesadaran (<em>mindfulness</em>) secara psikologis terhadap setiap rupiah yang keluar. Jika otomatis, Anda tidak akan merasakan "rasa sakit" pengeluaran tersebut, dan kebiasaan boros akan terus berlanjut.
               </p>
             </div>
           </div>
