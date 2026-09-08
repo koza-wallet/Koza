@@ -132,3 +132,54 @@ export function calculateHealthScore(
     overallTip,
   };
 }
+
+export interface SpendingLeak {
+  category: string;
+  categoryIcon: string;
+  totalAmount: number;
+  transactionCount: number;
+  shareOfExpense: number;
+  message: string;
+}
+
+// Kategori dianggap "bocor halus" kalau muncul cukup sering (bukan sekali beli besar)
+// dan menyerap porsi pengeluaran bulan ini yang signifikan.
+const LEAK_MIN_TRANSACTION_COUNT = 3;
+const LEAK_MIN_SHARE_OF_EXPENSE = 0.15;
+
+/** Mendeteksi kategori pengeluaran bulan berjalan yang berpotensi jadi kebocoran dana halus. */
+export function detectSpendingLeaks(transactions: Transaction[]): SpendingLeak[] {
+  const now = new Date();
+  const currentMonthExpenses = transactions.filter((t) => {
+    const d = new Date(t.timestamp);
+    return t.direction === "expense" && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  });
+
+  const totalExpense = currentMonthExpenses.reduce((sum, t) => sum + t.amount, 0);
+  if (totalExpense === 0) return [];
+
+  const byCategory = new Map<string, { category: string; categoryIcon: string; totalAmount: number; transactionCount: number }>();
+  currentMonthExpenses.forEach((t) => {
+    const existing = byCategory.get(t.categoryId);
+    if (existing) {
+      existing.totalAmount += t.amount;
+      existing.transactionCount += 1;
+    } else {
+      byCategory.set(t.categoryId, {
+        category: t.category,
+        categoryIcon: t.categoryIcon,
+        totalAmount: t.amount,
+        transactionCount: 1,
+      });
+    }
+  });
+
+  return Array.from(byCategory.values())
+    .map((c) => ({ ...c, shareOfExpense: c.totalAmount / totalExpense }))
+    .filter((c) => c.transactionCount >= LEAK_MIN_TRANSACTION_COUNT && c.shareOfExpense >= LEAK_MIN_SHARE_OF_EXPENSE)
+    .sort((a, b) => b.totalAmount - a.totalAmount)
+    .map((c) => ({
+      ...c,
+      message: `Ada ${c.transactionCount} transaksi "${c.category}" bulan ini yang menghabiskan ${Math.round(c.shareOfExpense * 100)}% dari total pengeluaran Anda. Anda berpotensi kehilangan lebih banyak uang jika tidak segera dievaluasi.`,
+    }));
+}

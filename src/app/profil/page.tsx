@@ -48,13 +48,9 @@ export default function ProfilPage() {
     });
   }, []);
 
-  if (loading || dbSubscriptionTier === null) {
-    return (
-      <div className="min-h-screen bg-surface flex items-center justify-center">
-        <span className="material-symbols-outlined animate-spin text-[40px] text-primary">sync</span>
-      </div>
-    );
-  }
+  // Status subscription belum diketahui sampai getUserProfileAction() selesai — dipakai
+  // untuk skeleton lokal di bagian badge/upsell/ekspor, bukan lagi memblokir seluruh halaman.
+  const isProfileLoading = dbSubscriptionTier === null;
 
   // Use dbUserName if available, otherwise session user name, otherwise split email, otherwise mockUser
   const fullName = dbUserName || user?.name || (user?.email ? user.email.split("@")[0] : mockUser.fullName);
@@ -253,7 +249,9 @@ export default function ProfilPage() {
                   <h3 className="font-headline-sm text-headline-sm text-on-surface truncate">
                     {fullName}
                   </h3>
-                  {dbSubscriptionTier === "DEVELOPER" ? (
+                  {isProfileLoading ? (
+                    <span className="inline-block w-16 h-5 rounded-full bg-surface-container-high animate-pulse" />
+                  ) : dbSubscriptionTier === "DEVELOPER" ? (
                     <span className="inline-flex items-center gap-1 bg-amber-500/20 text-amber-500 px-2.5 py-0.5 rounded-full font-label-md text-label-md font-bold">
                       <span className="material-symbols-outlined text-[14px]">code</span>
                       DEVELOPER
@@ -300,7 +298,7 @@ export default function ProfilPage() {
             </div>
           </section>
 
-          {!isPremiumOrDev && (
+          {!isProfileLoading && !isPremiumOrDev && (
             <section className="mb-space-xs -mt-1">
               <button
                 onClick={() => setIsPaywallOpen(true)}
@@ -377,12 +375,12 @@ export default function ProfilPage() {
                   <div className="min-w-0">
                     <h4 className="font-label-lg text-label-lg text-on-surface">Ekspor Data (.CSV)</h4>
                     <p className="font-body-sm text-body-sm text-on-surface-variant truncate">
-                      {dbSubscriptionTier === "FREE" ? `Batas Ekspor Riwayat: ${Math.max(0, 3 - exportCount)}/3` : "Unduh riwayat ke Excel"}
+                      {isProfileLoading ? "Memuat..." : dbSubscriptionTier === "FREE" ? `Batas Ekspor Riwayat: ${Math.max(0, 3 - exportCount)}/3` : "Unduh riwayat ke Excel"}
                     </p>
                   </div>
                 </div>
                 <span className="material-symbols-outlined text-on-surface-variant text-[20px] ml-space-xs">
-                  {dbSubscriptionTier === "FREE" && exportCount >= 3 ? "lock" : "download"}
+                  {!isProfileLoading && dbSubscriptionTier === "FREE" && exportCount >= 3 ? "lock" : "download"}
                 </span>
               </button>
             </div>

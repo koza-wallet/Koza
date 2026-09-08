@@ -30,9 +30,12 @@ export function SupabaseProvider({ children }: { children: React.ReactNode }) {
       } as User & { name?: string; image?: string; subscriptionTier?: string };
     };
 
-    // Initial fetch
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setSession({ user: mapUser(user) });
+    // Initial fetch — pakai getSession() (baca token dari local storage, instan, tanpa
+    // network round-trip) untuk render optimistik secepat mungkin. Keamanan tetap terjaga
+    // karena setiap server action tetap memanggil getUser() sendiri untuk revalidasi JWT
+    // (lihat getSessionUser() di src/actions/finance.ts) sebelum data sensitif diakses.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession({ user: mapUser(session?.user ?? null) });
       setLoading(false);
     });
 

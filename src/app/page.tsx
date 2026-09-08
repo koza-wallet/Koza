@@ -9,7 +9,7 @@ import { TransactionListItem } from "@/components/TransactionListItem";
 import { getMonthlySummary, getRecentTransactions, getTotalBalance } from "@/lib/finance";
 import { formatFullDateId, formatRupiahAmount, formatSignedRupiah } from "@/lib/format";
 import { useFinance } from "@/lib/finance-context";
-import { calculateHealthScore } from "@/lib/analysis";
+import { calculateHealthScore, detectSpendingLeaks } from "@/lib/analysis";
 import { currentUser as mockUser } from "@/lib/mock-data";
 import { QuickRepaymentModal } from "@/components/QuickRepaymentModal";
 import { PaywallModal } from "@/components/PaywallModal";
@@ -29,6 +29,9 @@ export default function BerandaPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [dbUserName, setDbUserName] = useState<string>("");
   const [subscriptionTier, setSubscriptionTier] = useState<string>("FREE");
+  // Status premium belum diketahui sampai getUserProfileAction() selesai — dipakai
+  // supaya widget premium tidak sempat kelihatan "terkunci" sesaat sebelum data asli datang.
+  const [isSubscriptionLoaded, setIsSubscriptionLoaded] = useState(false);
   const { wallets, transactions, pockets } = useFinance();
   const [currentDate] = useState(() => new Date());
 
@@ -43,7 +46,7 @@ export default function BerandaPage() {
       getUserProfileAction().then((data) => {
         if (data?.name) setDbUserName(data.name);
         if (data?.subscriptionTier) setSubscriptionTier(data.subscriptionTier);
-      }).catch(() => {});
+      }).catch(() => {}).finally(() => setIsSubscriptionLoaded(true));
     }
   }, [session]);
 
@@ -56,6 +59,8 @@ export default function BerandaPage() {
   const monthlySummary = getMonthlySummary(transactions, currentDate);
   const recentTransactions = getRecentTransactions(transactions, RECENT_TRANSACTIONS_LIMIT);
   const healthData = useMemo(() => calculateHealthScore(transactions, wallets, pockets?.length || 0), [transactions, wallets, pockets]);
+  const spendingLeaks = useMemo(() => detectSpendingLeaks(transactions), [transactions]);
+  const topLeak = spendingLeaks[0] ?? null;
 
   const monthLabelName = new Intl.DateTimeFormat("id-ID", { month: "long" }).format(currentDate);
   const lastDayOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
@@ -337,40 +342,60 @@ export default function BerandaPage() {
 
             {/* Zeigarnik Effect: Deteksi Bocor Halus (Premium) */}
             <div className="relative bg-surface-container-lowest rounded-[20px] p-space-md shadow-sm flex flex-col gap-space-sm overflow-hidden border border-outline-variant/30">
-              {/* Content Layer — blur hanya untuk tier FREE */}
-              <div className={`flex flex-col gap-3 ${isPremium ? "" : "filter blur-[6px] opacity-60 pointer-events-none select-none"}`}>
-                <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-error text-[20px]">warning</span>
-                  <h3 className="font-headline-sm text-headline-sm text-on-surface">Deteksi Kebocoran Dana</h3>
+              {!isSubscriptionLoaded ? (
+                // Skeleton — status premium belum diketahui, jangan tebak "terkunci" atau "terbuka"
+                <div className="flex flex-col gap-3 animate-pulse">
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 rounded-full bg-surface-container-high" />
+                    <div className="h-4 w-40 rounded bg-surface-container-high" />
+                  </div>
+                  <div className="h-20 bg-surface-container-high rounded-lg w-full mt-1" />
+                  <div className="h-3 w-full rounded bg-surface-container-high" />
                 </div>
-                <div className="h-20 bg-gradient-to-r from-error/20 to-tertiary/20 rounded-lg w-full mt-1 border border-error/10 relative overflow-hidden">
-                  <div className="absolute inset-0 flex items-center px-4 justify-between">
-                    <div className="flex flex-col">
-                      <span className="font-label-sm text-label-sm text-on-surface font-bold">Jajan Kopi & GoFood</span>
-                      <span className="font-body-sm text-body-sm text-error">-Rp 450.000</span>
+              ) : (
+                <>
+                  {/* Content Layer — blur hanya untuk tier FREE */}
+                  <div className={`flex flex-col gap-3 ${isPremium ? "" : "filter blur-[6px] opacity-60 pointer-events-none select-none"}`}>
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-error text-[20px]">warning</span>
+                      <h3 className="font-headline-sm text-headline-sm text-on-surface">Deteksi Kebocoran Dana</h3>
                     </div>
-                    <span className="material-symbols-outlined text-error">trending_down</span>
+                    {topLeak ? (
+                      <>
+                        <div className="h-20 bg-gradient-to-r from-error/20 to-tertiary/20 rounded-lg w-full mt-1 border border-error/10 relative overflow-hidden">
+                          <div className="absolute inset-0 flex items-center px-4 justify-between">
+                            <div className="flex flex-col">
+                              <span className="font-label-sm text-label-sm text-on-surface font-bold">{topLeak.category}</span>
+                              <span className="font-body-sm text-body-sm text-error">-{formatRupiahAmount(topLeak.totalAmount)}</span>
+                            </div>
+                            <span className="material-symbols-outlined text-error">trending_down</span>
+                          </div>
+                        </div>
+                        <p className="font-body-sm text-body-sm text-on-surface">{topLeak.message}</p>
+                      </>
+                    ) : (
+                      <p className="font-body-sm text-body-sm text-on-surface-variant py-2">Belum ada pola pengeluaran boros yang terdeteksi bulan ini. Terus catat transaksi Anda agar analisis makin akurat.</p>
+                    )}
                   </div>
-                </div>
-                <p className="font-body-sm text-body-sm text-on-surface">Peringatan: Ada 3 pengeluaran Anda yang melebihi batas wajar bulan ini. Anda berpotensi kehilangan lebih banyak uang jika tidak segera dihentikan.</p>
-              </div>
 
-              {/* Overlay / Paywall CTA — hanya untuk tier FREE */}
-              {!isPremium && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-surface/50 backdrop-blur-[2px] z-10">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-2 shadow-[0_4px_12px_rgba(0,108,73,0.15)] text-primary">
-                    <span className="material-symbols-outlined text-[24px]">lock</span>
-                  </div>
-                  <h4 className="font-label-lg text-label-lg text-on-surface font-bold mb-1">Analisis Bocor Halus</h4>
-                  <p className="font-body-sm text-body-sm text-on-surface-variant mb-4 px-8 text-center">Buka fitur Premium untuk melihat letak kebocoran uang Anda.</p>
-                  <button
-                    onClick={() => setIsPaywallOpen(true)}
-                    className="px-5 py-2.5 bg-primary text-on-primary rounded-full font-label-md font-extrabold shadow-[0_4px_14px_rgba(0,108,73,0.4)] hover:shadow-[0_6px_20px_rgba(0,108,73,0.6)] active:scale-95 transition-all flex items-center gap-2"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">key</span>
-                    Buka Kunci Premium
-                  </button>
-                </div>
+                  {/* Overlay / Paywall CTA — hanya untuk tier FREE */}
+                  {!isPremium && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-surface/50 backdrop-blur-[2px] z-10">
+                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-2 shadow-[0_4px_12px_rgba(0,108,73,0.15)] text-primary">
+                        <span className="material-symbols-outlined text-[24px]">lock</span>
+                      </div>
+                      <h4 className="font-label-lg text-label-lg text-on-surface font-bold mb-1">Analisis Bocor Halus</h4>
+                      <p className="font-body-sm text-body-sm text-on-surface-variant mb-4 px-8 text-center">Buka fitur Premium untuk melihat letak kebocoran uang Anda.</p>
+                      <button
+                        onClick={() => setIsPaywallOpen(true)}
+                        className="px-5 py-2.5 bg-primary text-on-primary rounded-full font-label-md font-extrabold shadow-[0_4px_14px_rgba(0,108,73,0.4)] hover:shadow-[0_6px_20px_rgba(0,108,73,0.6)] active:scale-95 transition-all flex items-center gap-2"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">key</span>
+                        Buka Kunci Premium
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
             </div>
 

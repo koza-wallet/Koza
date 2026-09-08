@@ -120,6 +120,12 @@ export async function getFinanceData() {
   }
 }
 
+/** Label dompet yang ditampilkan sebagai `paymentMethod` transaksi (bukan ID mentah). */
+async function getWalletPaymentLabel(walletId: string): Promise<string> {
+  const wallet = await prisma.wallet.findUnique({ where: { id: walletId }, select: { name: true } });
+  return wallet?.name ?? "Dompet";
+}
+
 export async function addWalletAction(input: NewWalletInput) {
   const user = await getSessionUser();
   const newWallet = await prisma.wallet.create({
@@ -142,7 +148,7 @@ export async function addWalletAction(input: NewWalletInput) {
         amount: input.balance,
         direction: "income",
         date: new Date(),
-        paymentMethod: newWallet.id,
+        paymentMethod: newWallet.name,
         walletId: newWallet.id,
         categoryId: "saldo_awal",
         userId: user.id
@@ -177,13 +183,14 @@ export async function deleteWalletAction(id: string) {
 
 export async function addTransactionAction(input: NewTransactionInput) {
   const user = await getSessionUser();
+  const paymentMethod = await getWalletPaymentLabel(input.walletId);
   const transaction = await prisma.transaction.create({
     data: {
       title: input.title,
       amount: input.amount,
       direction: input.direction,
       date: new Date(input.timestamp),
-      paymentMethod: input.walletId,
+      paymentMethod,
       note: input.note,
       walletId: input.walletId,
       categoryId: input.categoryId,
@@ -197,6 +204,7 @@ export async function addTransactionAction(input: NewTransactionInput) {
 
 export async function updateTransactionAction(input: UpdateTransactionInput) {
   const user = await getSessionUser();
+  const paymentMethod = await getWalletPaymentLabel(input.walletId);
   const transaction = await prisma.transaction.update({
     where: { id: input.id, userId: user.id },
     data: {
@@ -204,7 +212,7 @@ export async function updateTransactionAction(input: UpdateTransactionInput) {
       amount: input.amount,
       direction: input.direction,
       date: new Date(input.timestamp),
-      paymentMethod: input.walletId,
+      paymentMethod,
       note: input.note,
       walletId: input.walletId,
       categoryId: input.categoryId,
@@ -360,14 +368,15 @@ export async function addDebtAction(input: {
   // Hutang = Uang masuk ke dompet (income)
   // Piutang = Uang keluar dari dompet (expense)
   const direction = input.type === "HUTANG" ? "income" : "expense";
-  
+  const paymentMethod = await getWalletPaymentLabel(input.walletId);
+
   const transaction = await prisma.transaction.create({
     data: {
       title: input.type === "HUTANG" ? `Hutang dari ${input.contactName}` : `Piutang ke ${input.contactName}`,
       amount: input.amount,
       direction,
       date: new Date(input.date),
-      paymentMethod: input.walletId,
+      paymentMethod,
       walletId: input.walletId,
       categoryId: input.type === "HUTANG" ? "debt_in" : "debt_out",
       userId: user.id,
@@ -425,6 +434,7 @@ export async function payDebtAction(input: {
   const direction = debt.type === "HUTANG" ? "expense" : "income";
   const categoryId = debt.type === "HUTANG" ? "bayar_hutang" : "terima_piutang";
   const title = debt.type === "HUTANG" ? `Cicilan Hutang ke ${debt.contactName}` : `Terima Cicilan dari ${debt.contactName}`;
+  const paymentMethod = await getWalletPaymentLabel(input.walletId);
 
   // 1. Buat transaksi pembayaran
   const transaction = await prisma.transaction.create({
@@ -433,7 +443,7 @@ export async function payDebtAction(input: {
       amount: input.amount,
       direction,
       date: new Date(input.date),
-      paymentMethod: input.walletId,
+      paymentMethod,
       walletId: input.walletId,
       categoryId,
       debtId: debt.id,
