@@ -47,6 +47,12 @@ dev.db
 
 # custom agents skills
 .agents/
+.devin/skills/prisma-composer-core-concepts/
+.cursor/skills/prisma-composer-core-concepts/
+.claude/skills/prisma-composer-core-concepts/
+
+# internal dev log
+Koza_development_log.md
 
 # Video Promosi / Scripts
 *100*ide*koza*creative*
